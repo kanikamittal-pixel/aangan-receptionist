@@ -29,9 +29,16 @@ export async function findSlots(auth: Auth, eventTypeUri: string, from: Date, da
   return slots.sort().slice(0, max);
 }
 
-export function inviteeEmail(email: string | null | undefined, phone: string | null, s: Settings["calendly"]) {
+/**
+ * Email to book with. Cal.com (and Calendly) reject addresses whose domain cannot receive mail, so when the caller
+ * gave none we use the designer's own address with a "+digits" tag (confirmation goes to the designer, who forwards it).
+ * The placeholder domain is a last resort and will be rejected by Cal.com.
+ */
+export function inviteeEmail(email: string | null | undefined, phone: string | null, s: Settings["calendly"], fallbackEmail?: string | null) {
   if (email) return email;
   const digits = (phone ?? "unknown").replace(/\D/g, "");
+  const fb = fallbackEmail || s.fallback_email;
+  if (fb && fb.includes("@")) { const [local, domain] = fb.split("@"); return `${local.split("+")[0]}+${digits}@${domain}`; }
   return `${digits}@${s.placeholder_domain}`;
 }
 

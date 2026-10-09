@@ -69,7 +69,8 @@ export const DEFAULT_SETTINGS = {
     min_notice_hours: 4,
     // Calendly requires an invitee email. 'placeholder' uses <digits>@<domain> when the caller gave none.
     email_mode: "placeholder" as "placeholder" | "collected_only",
-    placeholder_domain: "bookings.aangan.example",
+    placeholder_domain: "bookings.aangan.example", // last resort: Cal.com REJECTS this (no mail server)
+    fallback_email: "", // optional studio inbox used when the caller gave no email; else the designer's own email is used
     location_kind: "" as string, // set e.g. "physical" if the event type requires a location
     location_text: "",
     pass_text_reminder_number: false,

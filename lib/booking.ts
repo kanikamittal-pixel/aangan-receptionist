@@ -18,7 +18,7 @@ export async function bookConsultation(leadId: string, designer: Designer & { sc
   if (!email && s.email_mode === "collected_only") throw new Error("Caller gave no email and email_mode is collected_only");
   const from = new Date(Date.now() + s.min_notice_hours * 3_600_000);
   const name = lead.name ?? "Aangan enquiry";
-  const invitee = inviteeEmail(email, lead.phone, s);
+  const invitee = inviteeEmail(email, lead.phone, s, (designer as any).email);
 
   let start: string, meetingUrl: string | null, externalId: string, eventUri: string | null = null, inviteeUri: string | null = null;
   const provider = designer.scheduler === "cal" ? "cal" : "calendly";
