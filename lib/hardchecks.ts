@@ -56,3 +56,13 @@ export function applyHardChecks(ex: Extraction, rules: Rules, now: Date) {
 
 export function failedCriteria(c: Criteria) { return CRITERIA_KEYS.filter((k) => c[k].result === "fail"); }
 export function unclearCriteria(c: Criteria) { return CRITERIA_KEYS.filter((k) => c[k].result === "unclear"); }
+
+/** URGENT = needed-by date inside the urgent window (but not already failing the minimum lead time) or the caller signals urgency. */
+export function computeUrgency(ex: Extraction, rules: Rules, now: Date): { urgent: boolean; reason: string | null } {
+  if (ex.needed_by_date && /^\d{4}-\d{2}-\d{2}$/.test(ex.needed_by_date)) {
+    const weeks = (new Date(ex.needed_by_date + "T00:00:00Z").getTime() - now.getTime()) / (7 * 86_400_000);
+    if (weeks >= rules.min_weeks_to_deadline && weeks <= rules.urgent_within_weeks) return { urgent: true, reason: `Needed by ${ex.needed_by_date} (~${Math.round(weeks)} weeks)` };
+  }
+  if (ex.urgency_signal) return { urgent: true, reason: ex.urgency_reason || "Caller asked for urgency" };
+  return { urgent: false, reason: null };
+}

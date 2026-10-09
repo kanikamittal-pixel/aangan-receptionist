@@ -13,5 +13,5 @@ import { registerWebhook } from "../lib/calendly";
       .then(() => console.log("Calendly webhook set"))
       .catch((e) => console.error("Calendly webhook:", e.message, "(already registered? Needs a paid plan + org admin token)"));
   }
-  console.log(`Vaani webhook URL to paste into Vaani: ${base}/api/webhooks/vaani?key=<VAANI_WEBHOOK_KEY>`);
+  console.log(`Register in Vaani (Settings -> Webhooks): ${base}/api/webhooks/vaani?key=<VAANI_WEBHOOK_KEY>`);
 })().catch((e) => { console.error(e); process.exit(1); });

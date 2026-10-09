@@ -29,3 +29,12 @@ export function decideRoute(ex: Extraction, criteria: Criteria, settings: Settin
   }
   return { route: "qualified", blocking: [], noted, reason: noted.length ? "Qualified; uncertainty on " + noted.join(", ") : "All criteria pass" };
 }
+
+/**
+ * "Very sure": safe for Vaani to have booked the consultation with no designer approval.
+ * All five criteria pass, confidence is high, and nothing is unclear or overridden.
+ */
+export function isSure(d: Decision, criteria: Criteria, ex: Extraction): boolean {
+  return d.route === "qualified" && ex.confidence === "high" && d.noted.length === 0 &&
+    Object.values(criteria).every((c) => c.result === "pass");
+}

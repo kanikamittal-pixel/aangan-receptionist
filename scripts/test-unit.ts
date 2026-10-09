@@ -10,7 +10,7 @@ const base = (o: Partial<Extraction> = {}): Extraction => ({
   carpet_area_sqft: 1200, scope: "full", timeline_text: null, needed_by_date: "2027-03-31", volunteered_budget: null,
   decision_maker: "on_call", referral_source: null, call_type: "new_enquiry", is_repeat_caller: false, repeat_note: null,
   consent_to_record: "yes", criteria: { real_project: ok, location: ok, timeline: ok, budget: ok, decision_maker: ok },
-  confidence: "high", handoff_summary: "x", complaint: null, ...o,
+  confidence: "high", handoff_summary: "x", complaint: null, urgency_signal: false, urgency_reason: null, ...o,
 });
 const now = new Date("2026-09-08T10:00:00Z");
 let fail = 0;
@@ -34,4 +34,35 @@ t("budget fail -> not a fit", run({ criteria: { ...base().criteria, budget: { re
 t("complaint routes to complaint", run({ call_type: "complaint" }).d.route === "complaint");
 t("dropped call is held", run({ call_type: "dropped_call" }).d.route === "dropped");
 t("low confidence -> review", run({ confidence: "low" }).d.route === "unclear");
+
+import { computeMetrics, type Deal } from "../lib/pipeline-metrics";
+const mk = (stage: string, p: Record<string, string> = {}): Deal => ({ id: Math.random().toString(), props: { dealstage: stage, call_time: "2026-09-10T10:00:00Z", answered_within_5_min: "true", out_of_hours: "false", call_cost_inr: "10", routing_decision: "qualified", amount: null, ...p } as any });
+const st: any = { a: "qualified", b: "consultation_booked", c: "won", d: "not_a_fit" };
+const m = computeMetrics([mk("a"), mk("b", { out_of_hours: "true" }), mk("c", { amount: "1000000" }), mk("d", { routing_decision: "not_a_fit", answered_within_5_min: "false" })], st);
+t("metrics: leads and stages", m.leads === 4 && m.byStage.won === 1 && m.byStage.not_a_fit === 1);
+t("metrics: % answered within 5 min", m.pctAnswered5 === 75);
+t("metrics: out-of-hours", m.outOfHours === 1);
+t("metrics: consultations = booked + won", m.consultations === 2);
+t("metrics: won revenue", m.wonRevenue === 1000000);
+t("metrics: cost, cost per qualified, revenue vs cost", m.totalCost === 40 && m.costPerQualified === 13.33 && m.revenueVsCost === 25000);
+t("metrics: date range filter", computeMetrics([mk("a")], st, new Date("2026-10-01").getTime()).leads === 0);
+
+import { pickBooking } from "../lib/autobook";
+import { isSure } from "../lib/route";
+const sureEx = base(); const sureH = applyHardChecks(sureEx, DEFAULT_RULES, now);
+t("isSure: all pass + high confidence", isSure(decideRoute(sureEx, sureH.criteria, DEFAULT_SETTINGS), sureH.criteria, sureEx));
+const bEx = base({ criteria: { ...base().criteria, decision_maker: { result: "unclear", reason: "?" } } });
+t("isSure: unclear decision-maker is NOT sure", !isSure(decideRoute(bEx, bEx.criteria, DEFAULT_SETTINGS), bEx.criteria, bEx));
+const mEx = base({ confidence: "medium" });
+t("isSure: medium confidence is NOT sure", !isSure(decideRoute(mEx, mEx.criteria, DEFAULT_SETTINGS), mEx.criteria, mEx));
+const end = new Date("2026-09-10T10:05:00Z");
+const c1 = { id: "a", created_at: "2026-09-10T10:01:00Z", attendee: { phoneNumber: "+91 98000 00001" } }, c2 = { id: "b", created_at: "2026-09-10T10:04:30Z", attendee: { phoneNumber: "+919800000002" } };
+t("pickBooking: matches by phone", pickBooking([c1, c2], "+919800000001", end)?.id === "a");
+t("pickBooking: falls back to closest to call end", pickBooking([c1, c2], null, end)?.id === "b");
+t("pickBooking: none", pickBooking([], "+91", end) === null);
+import { computeUrgency } from "../lib/hardchecks";
+t("urgency: needed in 8 weeks is urgent", computeUrgency(base({ needed_by_date: "2026-11-03" }), DEFAULT_RULES, now).urgent);
+t("urgency: needed by March is not urgent", !computeUrgency(base(), DEFAULT_RULES, now).urgent);
+t("urgency: caller signal makes it urgent", computeUrgency(base({ urgency_signal: true, urgency_reason: "possession next month" }), DEFAULT_RULES, now).urgent);
+t("urgency: under 6 weeks is a fail, not 'urgent'", !computeUrgency(base({ needed_by_date: "2026-09-29" }), DEFAULT_RULES, now).urgent);
 process.exit(fail ? 1 : 0);

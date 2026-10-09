@@ -1,13 +1,14 @@
 import { q } from "./db";
 import { loadConfig } from "./config";
 import { extractTranscript } from "./extract";
-import { applyHardChecks } from "./hardchecks";
-import { decideRoute, type Decision } from "./route";
+import { applyHardChecks, computeUrgency } from "./hardchecks";
+import { decideRoute, isSure, type Decision } from "./route";
+import { linkVaaniBooking } from "./autobook";
 import { callCost } from "./cost";
-import { renderComplaint, renderLead } from "./messages";
+import { renderBooked, renderComplaint, renderLead } from "./messages";
 import { sendMessage } from "./telegram";
 import { syncLeadToHubspot } from "./hubsync";
-import { istParts, normalizePhone, transcriptUrl } from "./util";
+import { fmtDateTime, istParts, normalizePhone, transcriptUrl } from "./util";
 import type { NormalizedInteraction } from "./vaani";
 
 const STATUS_FOR_ROUTE = { qualified: "qualified", unclear: "needs_review", complaint: "complaint", not_a_fit: "not_a_fit", dropped: "needs_review" } as const;
@@ -62,6 +63,7 @@ export async function processInteraction(n: NormalizedInteraction) {
     const { criteria, overrides } = applyHardChecks(extraction, rules, n.startedAt);
     if (overrides.length) console.warn("[hardcheck override]", callId, JSON.stringify(overrides));
     const decision = decideRoute(extraction, criteria, settings);
+    const urgency = computeUrgency(extraction, rules, n.startedAt);
 
     const bh = settings.business_hours;
     const { hour, day } = istParts(n.startedAt, bh.timezone);
@@ -71,19 +73,27 @@ export async function processInteraction(n: NormalizedInteraction) {
     await q(
       `update calls set lead_id=$2, extraction=$3, ai_criteria=$4, final_criteria=$5, overrides=$6, call_type=$7, confidence=$8,
          routing=$9, consent=$10, out_of_hours=$11, answered_within_5min=$12, cost_voice_inr=$13, cost_ai_inr=$14, cost_total_inr=$15,
-         gemini_in_tokens=$16, gemini_out_tokens=$17 where id=$1`,
+         gemini_in_tokens=$16, gemini_out_tokens=$17, urgent=$18, urgent_reason=$19 where id=$1`,
       [callId, leadId, extraction, extraction.criteria, criteria, JSON.stringify(overrides), extraction.call_type, extraction.confidence,
         decision.route, extraction.consent_to_record, outOfHours, n.answeredAfterSec == null ? true : n.answeredAfterSec <= 300,
-        cost.voice, cost.ai, cost.total, tokensIn, tokensOut],
+        cost.voice, cost.ai, cost.total, tokensIn, tokensOut, urgency.urgent, urgency.reason],
     );
     await q(
-      "update leads set name=coalesce($2,name), phone=coalesce(phone,$3), status=$4, routing=$5, last_call_at=$6, updated_at=now() where id=$1",
-      [leadId, extraction.name, phone ?? normalizePhone(extraction.phone), STATUS_FOR_ROUTE[decision.route], decision.route, n.startedAt],
+      "update leads set name=coalesce($2,name), phone=coalesce(phone,$3), status=$4, routing=$5, last_call_at=$6, decision=case when decision in ('none','pending') then $7 else decision end, updated_at=now() where id=$1",
+      [leadId, extraction.name, phone ?? normalizePhone(extraction.phone), STATUS_FOR_ROUTE[decision.route], decision.route, n.startedAt, decision.route === "qualified" || decision.route === "unclear" ? "pending" : "none"],
     );
+
+    // Did Vaani book a consultation during this call (Cal.com)? Attach it, and decide whether it needs a designer's review.
+    const booking = await linkVaaniBooking(leadId!, n.startedAt, n.endedAt, phone ?? normalizePhone(extraction.phone));
+    const sure = !!booking && isSure(decision, criteria, extraction);
+    if (booking) {
+      await q("update leads set decision=$2, decided_at=case when $2='approved' then now() else decided_at end, decision_note=case when $2='approved' then 'Booked by Vaani during the call' else decision_note end where id=$1 and decision in ('none','pending')",
+        [leadId, sure ? "approved" : decision.route === "complaint" || decision.route === "dropped" ? "none" : "pending"]);
+    }
 
     // HubSpot first (Nikhil's view), then Telegram; one failing must not block the other
     await syncLeadToHubspot(leadId!).catch((e) => logErr(callId, "hubspot", e));
-    await postToTelegram(leadId!, callId, extraction, decision, criteria).catch((e) => logErr(callId, "telegram", e));
+    await postToTelegram(leadId!, callId, extraction, decision, criteria, booking, sure, urgency).catch((e) => logErr(callId, "telegram", e));
     return { callId, leadId, route: decision.route, overrides };
   } catch (e: any) {
     await logErr(callId, "pipeline", e);
@@ -103,16 +113,31 @@ async function alertFrontDesk(callId: string, n: NormalizedInteraction, err: str
   await sendMessage(chat, `⚠️ <b>Call needs manual review</b>: automatic processing failed.\n${n.from ?? "Unknown number"}\n<a href="${transcriptUrl(callId)}">Transcript</a>`).catch(() => {});
 }
 
-async function postToTelegram(leadId: string, callId: string, ex: any, decision: Decision, criteria: any) {
-  if (decision.route === "not_a_fit" || decision.route === "dropped") return; // logged and flagged in HubSpot only
+async function postToTelegram(leadId: string, callId: string, ex: any, decision: Decision, criteria: any, booking: any, sure: boolean, urgency: { urgent: boolean; reason: string | null }) {
+  const link0 = transcriptUrl(callId);
+  const when = booking ? fmtDateTime(booking.start_time) : "";
+  // Vaani booked a very sure lead: FYI only, no approval needed
+  if (booking && sure) {
+    const chat = process.env.TELEGRAM_DESIGNERS_CHAT_ID;
+    if (!chat) throw new Error("Telegram chat id not configured");
+    const text = renderBooked(ex, link0, when, booking.host_name, booking.meeting_url, urgency);
+    const row = await q("insert into telegram_messages(lead_id, call_id, kind, chat_id, text, acted, action) values($1,$2,'booked',$3,$4,true,'auto_booked') returning id", [leadId, callId, chat, text]);
+    const sent = await sendMessage(chat, text);
+    await q("update telegram_messages set message_id=$2 where id=$1", [row[0].id, sent.message_id]);
+    return;
+  }
+  // Booked, but our checks are not sure (or disagree): a designer must review, and Decline cancels the meeting
+  const warn = booking ? `Vaani already booked ${when}${booking.host_name ? ` with ${booking.host_name}` : ""}. Decline cancels it.` : undefined;
+  if ((decision.route === "not_a_fit" && !booking) || decision.route === "dropped") return; // logged and flagged in HubSpot only
   const link = transcriptUrl(callId);
   const isComplaint = decision.route === "complaint";
   const chat = isComplaint ? process.env.TELEGRAM_FRONTDESK_CHAT_ID : process.env.TELEGRAM_DESIGNERS_CHAT_ID;
   if (!chat) throw new Error("Telegram chat id not configured");
-  const text = isComplaint ? renderComplaint(ex, link) : renderLead(ex, decision, criteria, link, decision.route as "qualified" | "unclear");
+  const kind = decision.route === "qualified" ? "qualified" : "unclear"; // a booked not_a_fit is reviewed as "unclear"
+  const text = isComplaint ? renderComplaint(ex, link) : renderLead(ex, decision, criteria, link, kind, warn, urgency);
   const row = await q(
     "insert into telegram_messages(lead_id, call_id, kind, chat_id, text) values($1,$2,$3,$4,$5) returning id",
-    [leadId, callId, isComplaint ? "complaint" : decision.route, chat, text],
+    [leadId, callId, isComplaint ? "complaint" : kind, chat, text],
   );
   const id = row[0].id;
   const buttons = isComplaint

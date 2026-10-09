@@ -26,13 +26,15 @@ export const DEFAULT_RULES = {
   commercial_max_sqft: 3000, // services.md: "up to approximately 3,000 sq ft"
   // NOT in services.md: taken from transcript T18 ("commercial projects are typically 500 sq ft or more"). CONFIRM with Nikhil.
   commercial_min_sqft: 500,
+  // PROPOSED: a lead is URGENT if needed within this many weeks (but not under min_weeks_to_deadline, which fails), or the caller signals urgency. CONFIRM.
+  urgent_within_weeks: 10,
   min_weeks_to_deadline: 6, // services.md. NOTE qualified.md says 8-10 weeks: see README "Open questions".
   // Fed into the Gemini extraction prompt. Mirrors knowledge/qualified.md.
   criteria_text: {
-    real_project: "1. Real project, not just advice: wants design AND execution (min engagement = a room redesign with full execution). Red flags: 'just looking for ideas', 'come and advise', 'I'll do the execution myself'.",
+    real_project: "1. Real project, not just advice: wants design AND execution (min engagement = a room redesign with full execution). Red flags: 'just looking for ideas', 'come and advise', 'I'll do the execution myself'. PASS when the caller describes a home or small-office project and wants to book a consultation or go ahead, even if 'execution' is never said aloud. FAIL on explicit advice-only / DIY signals. UNCLEAR only if it is genuinely ambiguous whether they want a project at all.",
     location: "2. In service area: Pune city or PCMC. Talegaon, Lonavala, Nashik, Mumbai or anywhere else fails.",
-    timeline: "3. Realistic timeline: execution can't start on a project needed in under 6 weeks; ~3 weeks fails. If a later start (e.g. 'after Diwali', 'November') is offered by the studio or caller, still fail but record the possible later start in the reason.",
-    budget: "4. Budget band (broadly): only FAIL if the caller volunteered a number clearly below any project of their scope (e.g. 1-1.5 lakh for a full flat redesign or a kitchen+bedroom). No budget mentioned = pass or unclear, never fail.",
+    timeline: "3. Realistic timeline: execution can't start on a project needed in under 6 weeks; ~3 weeks fails. If a later start (e.g. 'after Diwali', 'November') is offered by the studio or caller, still fail but record the possible later start in the reason. If NO deadline was mentioned and nothing hints at a tight or conflicting date, PASS with reason 'No deadline stated, no conflict'. UNCLEAR only when the caller hinted at timing but it is vague or contradictory.",
+    budget: "4. Budget band (broadly): FAIL only if the caller volunteered a number clearly below any project of their scope (e.g. 1-1.5 lakh for a full flat redesign or a kitchen+bedroom). No budget mentioned = PASS (reason: 'No budget mentioned, treated as qualified'). UNCLEAR only if what they said about budget is ambiguous.",
     decision_maker: "5. Decision-maker on the call or represented. PASS if the caller is the decision-maker or confirms they are authorised (e.g. 'my husband knows and is happy to go ahead'). UNCLEAR (not fail) if the caller is checking on behalf of others who will decide later, e.g. a son calling 'to see if it's worth pursuing' while his parents decide.",
   },
   boundary_rules:

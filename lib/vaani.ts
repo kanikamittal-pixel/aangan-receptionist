@@ -1,9 +1,10 @@
-// ADAPTER for Vaani Labs' post-call webhook.
-//
-// Vaani's public docs do not publish the webhook payload or signature scheme, so this
-// parser accepts several plausible shapes. When you share the real spec / a sample payload,
-// ONLY this file needs to change. Everything downstream consumes NormalizedInteraction,
-// which is channel-agnostic: a WhatsApp or web-form webhook would build the same object.
+// ADAPTER for Vaani's post-call webhook (docs.vaanivoice.ai/guides/webhook-setup).
+// Event we use: "call_postprocessing" -> { event, call_id, timestamp, data: { room_name, call_id,
+//   call_duration (MILLISECONDS), end_reason, summary, entities, dispositions, recording_url,
+//   transcript: "[13:33:14] AGENT: ...\n\n[13:33:19] USER: ..." } }
+// The sample payload carries NO caller number; we read it from data.* if present, else the
+// extractor takes the number the caller dictated. Only this file knows Vaani's shapes: the rest of
+// the app consumes NormalizedInteraction (channel-agnostic: WhatsApp/web would build the same object).
 
 export type NormalizedInteraction = {
   channel: "phone" | "whatsapp" | "web";
@@ -17,32 +18,34 @@ export type NormalizedInteraction = {
   answeredAfterSec: number | null;
 };
 
-const pick = (o: any, ...keys: string[]) => { for (const k of keys) { const v = k.split(".").reduce((a, p) => a?.[p], o); if (v != null) return v; } return null; };
+const pick = (o: any, ...keys: string[]) => { for (const k of keys) { const v = k.split(".").reduce((a, p) => a?.[p], o); if (v != null && v !== "") return v; } return null; };
 
-function transcriptText(t: any): string {
-  if (typeof t === "string") return t;
-  if (Array.isArray(t)) {
-    return t.map((m) => `${/agent|assistant|bot|ai/i.test(m.role ?? m.speaker ?? "") ? "Agent" : "Caller"}: ${m.text ?? m.content ?? m.message ?? ""}`).join("\n");
-  }
-  return "";
+/** "[13:33:14] AGENT: hi\n\n[13:33:19] USER: yes" -> "Front Desk: hi\nCaller: yes" (labels the extraction prompt expects) */
+export function normalizeTranscript(t: string): string {
+  return t
+    .replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]\s*/g, "")
+    .replace(/^\s*AGENT:/gim, "Front Desk:")
+    .replace(/^\s*USER:/gim, "Caller:")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
 }
 
 export function parseVaaniWebhook(body: any): NormalizedInteraction {
   const d = body?.data ?? body;
-  const id = pick(d, "call_id", "callId", "id", "call.id", "session_id");
-  const transcript = transcriptText(pick(d, "transcript", "call.transcript", "conversation", "messages"));
-  if (!id || !transcript) throw new Error("Unrecognised Vaani payload: need a call id and a transcript. Update lib/vaani.ts");
-  const started = new Date(pick(d, "started_at", "start_time", "startedAt", "call.started_at", "created_at") ?? Date.now());
-  const durationSec = Number(pick(d, "duration_seconds", "duration_sec", "duration", "call.duration")) || null;
-  const ended = new Date(pick(d, "ended_at", "end_time", "endedAt") ?? started.getTime() + (durationSec ?? 0) * 1000);
+  const id = pick(d, "call_id", "room_name") ?? body?.call_id;
+  const raw = pick(d, "transcript");
+  if (!id || typeof raw !== "string") throw new Error("Unrecognised Vaani payload: need data.call_id and data.transcript");
+  const ms = Number(pick(d, "call_duration"));
+  const durationSec = Number.isFinite(ms) && ms > 0 ? Math.round(ms / 1000) : null; // call_postprocessing is in ms
+  const ended = new Date(body?.timestamp ?? Date.now());
   return {
     channel: "phone",
     externalId: String(id),
-    from: pick(d, "from_number", "from", "caller_number", "caller", "call.from", "customer.number"),
-    startedAt: started,
+    from: pick(d, "phone_number", "from_number", "caller_number", "contact_number", "entities.phone", "entities.phone_number"),
+    startedAt: new Date(ended.getTime() - (durationSec ?? 0) * 1000),
     endedAt: ended,
     durationSec,
-    transcript,
-    answeredAfterSec: Number(pick(d, "answer_delay_seconds", "ring_duration")) || null,
+    transcript: normalizeTranscript(raw),
+    answeredAfterSec: null,
   };
 }

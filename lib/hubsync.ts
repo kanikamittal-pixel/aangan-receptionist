@@ -11,7 +11,7 @@ const STATUS_TO_STAGE: Record<string, StageKey> = {
 
 /** Push the lead's current state to HubSpot (contact + deal). Safe to call repeatedly. */
 export async function syncLeadToHubspot(leadId: string) {
-  const [lead] = await q("select l.*, d.name as designer_name from leads l left join designers d on d.id=l.assigned_designer_id where l.id=$1", [leadId]);
+  const [lead] = await q("select l.*, coalesce(d.name, (select host_name from bookings where lead_id=l.id and status='booked' order by created_at desc limit 1)) as designer_name from leads l left join designers d on d.id=l.assigned_designer_id where l.id=$1", [leadId]);
   if (!lead) return;
   const calls = await q("select * from calls where lead_id=$1 order by started_at", [leadId]);
   const last = calls[calls.length - 1];

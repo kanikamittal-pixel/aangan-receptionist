@@ -50,6 +50,14 @@ export async function createBooking(
   return { inviteeUri: r.resource.uri, eventUri: r.resource.event };
 }
 
+/** Join link of a scheduled event (Zoom / Meet / etc.), if the event type has one. */
+export async function getEventLocation(auth: Auth, eventUri: string): Promise<string | null> {
+  try {
+    const r = await cal<{ resource: { location?: { join_url?: string; location?: string } } }>(auth, `/scheduled_events/${eventUri.split("/").pop()}`);
+    return r.resource.location?.join_url ?? r.resource.location?.location ?? null;
+  } catch { return null; }
+}
+
 export async function cancelEvent(auth: Auth, eventUri: string, reason: string) {
   const uuid = eventUri.split("/").pop();
   return cal(auth, `/scheduled_events/${uuid}/cancellation`, { method: "POST", body: JSON.stringify({ reason }) });

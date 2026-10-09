@@ -113,3 +113,47 @@ create table if not exists bookings (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table leads add column if not exists decision text not null default 'none';
+
+alter table leads add column if not exists decided_by int references designers(id);
+
+alter table leads add column if not exists decided_at timestamptz;
+
+alter table leads add column if not exists decision_note text;
+
+alter table leads add column if not exists meeting_url text;
+
+alter table designers add column if not exists dashboard_token text;
+
+alter table designers add column if not exists email text;
+
+alter table designers add column if not exists scheduler text not null default 'calendly';
+
+alter table designers add column if not exists cal_api_key text;
+
+alter table designers add column if not exists cal_event_type_id int;
+
+create unique index if not exists designers_dash_idx on designers(dashboard_token);
+
+alter table bookings add column if not exists provider text not null default 'calendly';
+
+alter table bookings add column if not exists external_id text;
+
+alter table bookings add column if not exists meeting_url text;
+
+alter table bookings add column if not exists created_by text not null default 'designer';
+
+alter table bookings add column if not exists host_name text;
+
+alter table bookings add column if not exists host_email text;
+
+alter table bookings add column if not exists attendee jsonb;
+
+alter table leads add column if not exists booked_by text;
+
+create unique index if not exists bookings_provider_ext_idx on bookings(provider, external_id) where external_id is not null;
+
+alter table calls add column if not exists urgent boolean not null default false;
+
+alter table calls add column if not exists urgent_reason text;
