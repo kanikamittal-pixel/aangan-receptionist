@@ -50,6 +50,11 @@ export async function handleCallback(cb: any) {
 
 /** A reply to the decline prompt supplies the reason. */
 export async function handleMessage(msg: any) {
+  // Onboarding helper: anyone who messages the bot privately gets their IDs back, to give to the studio admin.
+  if (msg.chat?.type === "private" && msg.text && !msg.reply_to_message) {
+    await sendMessage(msg.chat.id, `👋 Hi ${esc(who(msg.from))}.\nYour Telegram ID: <code>${msg.from.id}</code>\nThis chat's ID: <code>${msg.chat.id}</code>\nSend these to the studio admin to be set up.`);
+    return;
+  }
   const replyTo = msg.reply_to_message?.message_id;
   if (!replyTo || !msg.text) return;
   const [tm] = await q("select * from telegram_messages where decline_prompt_message_id=$1 and chat_id=$2 and action='decline_pending'", [replyTo, msg.chat.id]);
