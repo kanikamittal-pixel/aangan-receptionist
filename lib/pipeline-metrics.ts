@@ -4,7 +4,7 @@ import { loadConfig } from "./config";
 
 export type Deal = { id: string; props: Record<string, string | null> };
 
-const PROPS = ["dealname", "dealstage", "amount", "createdate", "closedate", "call_time", "answered_within_5_min", "out_of_hours", "routing_decision", "assigned_designer", "call_cost_inr", "transcript_link", "confidence"];
+const PROPS = ["dealname", "dealstage", "amount", "createdate", "closedate", "call_time", "answered_within_5_min", "out_of_hours", "routing_decision", "assigned_designer", "call_cost_inr", "transcript_link", "confidence", "consultation_time"];
 
 export async function fetchDeals(pipelineId: string): Promise<Deal[]> {
   const out: Deal[] = [];

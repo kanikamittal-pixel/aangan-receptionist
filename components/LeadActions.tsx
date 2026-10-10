@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+/** Take / Pass buttons, styled for the dark action card. Taking does not book anything: the designer asks the customer's preferred time. */
 export default function LeadActions({ leadId, token }: { leadId: string; token: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [declining, setDeclining] = useState(false);
+  const [passing, setPassing] = useState(false);
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -22,20 +23,20 @@ export default function LeadActions({ leadId, token }: { leadId: string; token: 
   }
 
   return (
-    <div className="d-actions">
-      {declining ? (
+    <div className="ds-actions">
+      {passing ? (
         <>
           <input autoFocus placeholder="Why are you passing? (one line)" value={reason} onChange={(e) => setReason(e.target.value)} />
-          <button className="d-btn d-no" disabled={busy || !reason.trim()} onClick={() => act("reject")}>Pass on this lead</button>
-          <button className="d-btn" onClick={() => setDeclining(false)}>Back</button>
+          <button className="ds-btn ds-btn-light" disabled={busy || !reason.trim()} onClick={() => act("reject")}>Pass on this lead</button>
+          <button className="ds-btn ds-btn-ghost" onClick={() => setPassing(false)}>Back</button>
         </>
       ) : (
         <>
-          <button className="d-btn d-yes" disabled={busy} onClick={() => act("approve")}>{busy ? "Saving…" : "Take this lead"}</button>
-          <button className="d-btn" disabled={busy} onClick={() => setDeclining(true)}>Pass</button>
+          <button className="ds-btn ds-btn-light" disabled={busy} onClick={() => act("approve")}>{busy ? "Saving…" : "Take this lead"}</button>
+          <button className="ds-btn ds-btn-ghost" disabled={busy} onClick={() => setPassing(true)}>Pass</button>
         </>
       )}
-      {msg && <p className="d-err">{msg}</p>}
+      {msg && <p className="ds-err">{msg}</p>}
     </div>
   );
 }
