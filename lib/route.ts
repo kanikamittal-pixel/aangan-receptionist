@@ -31,10 +31,11 @@ export function decideRoute(ex: Extraction, criteria: Criteria, settings: Settin
 }
 
 /**
- * "Very sure": safe for Vaani to have booked the consultation with no designer approval.
- * All five criteria pass, confidence is high, and nothing is unclear or overridden.
+ * Safe to treat a Vaani-made booking as final with no designer review: the lead is qualified (criteria 1-3 pass,
+ * nothing failed) and extraction confidence is high. Unclear budget / decision-maker is allowed: it is noted on the
+ * message, per qualified.md ("do not push, treat as qualified and note the uncertainty").
  */
 export function isSure(d: Decision, criteria: Criteria, ex: Extraction): boolean {
-  return d.route === "qualified" && ex.confidence === "high" && d.noted.length === 0 &&
-    Object.values(criteria).every((c) => c.result === "pass");
+  return d.route === "qualified" && ex.confidence === "high" &&
+    (["real_project", "location", "timeline"] as const).every((k) => criteria[k].result === "pass");
 }

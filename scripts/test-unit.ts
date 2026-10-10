@@ -50,9 +50,9 @@ t("metrics: date range filter", computeMetrics([mk("a")], st, new Date("2026-10-
 import { pickBooking } from "../lib/autobook";
 import { isSure } from "../lib/route";
 const sureEx = base(); const sureH = applyHardChecks(sureEx, DEFAULT_RULES, now);
-t("isSure: all pass + high confidence", isSure(decideRoute(sureEx, sureH.criteria, DEFAULT_SETTINGS), sureH.criteria, sureEx));
+t("isSure: qualified + high confidence", isSure(decideRoute(sureEx, sureH.criteria, DEFAULT_SETTINGS), sureH.criteria, sureEx));
 const bEx = base({ criteria: { ...base().criteria, decision_maker: { result: "unclear", reason: "?" } } });
-t("isSure: unclear decision-maker is NOT sure", !isSure(decideRoute(bEx, bEx.criteria, DEFAULT_SETTINGS), bEx.criteria, bEx));
+t("isSure: unclear decision-maker is still sure (noted, not blocking)", isSure(decideRoute(bEx, bEx.criteria, DEFAULT_SETTINGS), bEx.criteria, bEx));
 const mEx = base({ confidence: "medium" });
 t("isSure: medium confidence is NOT sure", !isSure(decideRoute(mEx, mEx.criteria, DEFAULT_SETTINGS), mEx.criteria, mEx));
 const end = new Date("2026-09-10T10:05:00Z");

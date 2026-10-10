@@ -26,7 +26,7 @@ async function v<T = any>(path: string, init: RequestInit = {}): Promise<T> {
       system_prompt: prompt,
       greeting_message: { agent_message: GREETING, agent_speech_delay: 0, interruptible: false, let_user_speak_first: false },
     },
-    senses_capabilities: { language: "en", auto_detect: true },
+    senses_capabilities: JSON.parse(fs.readFileSync("agent/vaani-senses.json", "utf8").replace(/"_note":[^\n]*\n/, "")),
   };
 
   const listed: any = await v(`/api/agents?search=${NAME}`); // read-only; also proves the key works
@@ -36,6 +36,12 @@ async function v<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   if (id) {
     await v(`/api/agent/${id}/persona`, { method: "PATCH", body: JSON.stringify(persona) });
     console.log("updated existing agent", id);
+    // Verify: Vaani can silently revert model / speech settings, so read them back.
+    const cur: any = await v(`/api/agent/${id}/persona`, { method: "PATCH", body: JSON.stringify({ metadata: {} }) });
+    const sc = cur.persona?.senses_capabilities ?? {};
+    const llm = sc.brain?.llm?.primary, stt = sc.ears?.stt?.primary;
+    console.log(`verified: llm=${llm?.provider}/${llm?.model} max_tokens=${llm?.parameters?.max_tokens} | stt keywords=${stt?.keywords?.length ?? 0} | prompt chars=${(cur.persona?.identity?.system_prompt ?? "").length}`);
+    if (llm?.model !== "gpt-4o") console.error("WARNING: the agent's LLM is not gpt-4o");
   } else {
     const r = await v("/api/create-agent", { method: "POST", body: JSON.stringify({ agent_display_name: NAME, config: { persona } }) });
     id = r.agent_id;
