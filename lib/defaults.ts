@@ -50,7 +50,9 @@ export const DEFAULT_SETTINGS = {
   complaint_max_reminders: 2,
   telegram_group_names: { designers: "Aangan Designers - Leads", front_desk: "Aangan Front Desk - Urgent" },
   hubspot: {
-    pipeline_label: "Phone Enquiries",
+    // Use HubSpot's default pipeline (renamed, with our 7 stages) so everything shows in the one pipeline view. false = create a separate pipeline.
+    use_default_pipeline: true,
+    pipeline_label: "Sales pipeline",
     stages: [
       { key: "needs_review", label: "Needs review", probability: 0.1 },
       { key: "qualified", label: "Qualified", probability: 0.3 },

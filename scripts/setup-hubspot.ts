@@ -35,24 +35,44 @@ function yn() { return [{ label: "Yes", value: "true", displayOrder: 0 }, { labe
       .then(() => console.log("created property", p.name))
       .catch((e) => { if (/409|already exists/i.test(String(e))) console.log("exists", p.name); else throw e; });
   }
-  const existing = await hs<{ results: any[] }>("/crm/v3/pipelines/deals");
-  let pipe = existing.results.find((p) => p.label === settings.hubspot.pipeline_label);
-  if (!pipe) {
-    pipe = await hs("/crm/v3/pipelines/deals", {
-      method: "POST",
-      body: JSON.stringify({
-        label: settings.hubspot.pipeline_label, displayOrder: 10,
-        stages: settings.hubspot.stages.map((s, i) => ({ label: s.label, displayOrder: i, metadata: { probability: String(s.probability) } })),
-      }),
-    });
-    console.log("created pipeline", pipe.id);
-  }
   const stages: Record<string, string> = {};
-  for (const s of settings.hubspot.stages) {
-    const found = pipe.stages.find((x: any) => x.label === s.label);
-    if (!found) throw new Error(`Stage "${s.label}" missing in pipeline ${pipe.id}; fix in HubSpot or settings`);
-    stages[s.key] = found.id;
+  let pipelineId: string;
+  if (settings.hubspot.use_default_pipeline) {
+    // Rename HubSpot's default pipeline and its 7 stages (in order) to ours, so Nikhil sees everything in one board.
+    const def: any = await hs("/crm/v3/pipelines/deals/default");
+    const cur = [...def.stages].sort((a: any, b: any) => a.displayOrder - b.displayOrder);
+    if (cur.length !== settings.hubspot.stages.length) throw new Error(`Default pipeline has ${cur.length} stages, expected ${settings.hubspot.stages.length}`);
+    await hs("/crm/v3/pipelines/deals/default", { method: "PATCH", body: JSON.stringify({ label: settings.hubspot.pipeline_label }) });
+    for (let i = 0; i < cur.length; i++) {
+      const want = settings.hubspot.stages[i];
+      const closed = cur[i].metadata?.isClosed === "true";
+      const body: any = { label: want.label };
+      if (!closed) body.metadata = { isClosed: "false", probability: String(want.probability) }; // closed stages keep HubSpot's fixed 100% / 0%
+      await hs(`/crm/v3/pipelines/deals/default/stages/${cur[i].id}`, { method: "PATCH", body: JSON.stringify(body) });
+      stages[want.key] = cur[i].id;
+    }
+    pipelineId = def.id;
+    console.log(`default pipeline renamed to "${settings.hubspot.pipeline_label}" with stages: ${settings.hubspot.stages.map((x) => x.label).join(" > ")}`);
+  } else {
+    const existing = await hs<{ results: any[] }>("/crm/v3/pipelines/deals");
+    let pipe = existing.results.find((p) => p.label === settings.hubspot.pipeline_label);
+    if (!pipe) {
+      pipe = await hs("/crm/v3/pipelines/deals", {
+        method: "POST",
+        body: JSON.stringify({
+          label: settings.hubspot.pipeline_label, displayOrder: 10,
+          stages: settings.hubspot.stages.map((s, i) => ({ label: s.label, displayOrder: i, metadata: { probability: String(s.probability) } })),
+        }),
+      });
+      console.log("created pipeline", pipe.id);
+    }
+    for (const s of settings.hubspot.stages) {
+      const found = pipe.stages.find((x: any) => x.label === s.label);
+      if (!found) throw new Error(`Stage "${s.label}" missing in pipeline ${pipe.id}; fix in HubSpot or settings`);
+      stages[s.key] = found.id;
+    }
+    pipelineId = pipe.id;
   }
-  await setConfigValue("hubspot_ids", { pipelineId: pipe.id, stages });
+  await setConfigValue("hubspot_ids", { pipelineId, stages });
   console.log("HubSpot ready. Dashboard reports: see docs/HUBSPOT_DASHBOARD.md");
 })().catch((e) => { console.error(e); process.exit(1); });
