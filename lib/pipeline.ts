@@ -8,7 +8,7 @@ import { callCost } from "./cost";
 import { CRITERION_LABEL, compactLine, renderBooked, renderComplaint, renderLead } from "./messages";
 import { sendMessage } from "./telegram";
 import { syncLeadToHubspot } from "./hubsync";
-import { fmtDateTime, istParts, normalizePhone, transcriptUrl } from "./util";
+import { fmtDateTime, istParts, normalizePhone, recordingUrl, transcriptUrl } from "./util";
 import type { NormalizedInteraction } from "./vaani";
 
 const STATUS_FOR_ROUTE = { qualified: "qualified", unclear: "needs_review", complaint: "complaint", not_a_fit: "not_a_fit", dropped: "needs_review" } as const;
@@ -120,7 +120,7 @@ async function postToTelegram(leadId: string, callId: string, ex: any, decision:
   if (booking && sure) {
     const chat = process.env.TELEGRAM_DESIGNERS_CHAT_ID;
     if (!chat) throw new Error("Telegram chat id not configured");
-    const text = renderBooked(ex, link0, when, booking.host_name, booking.meeting_url, urgency, decision.noted.map((k) => `${CRITERION_LABEL[k]} unclear: ${criteria[k].reason}`));
+    const text = renderBooked(ex, link0, when, booking.host_name, booking.meeting_url, urgency, decision.noted.map((k) => `${CRITERION_LABEL[k]} unclear: ${criteria[k].reason}`), recordingUrl(callId));
     const row = await q("insert into telegram_messages(lead_id, call_id, kind, chat_id, text, acted, action) values($1,$2,'booked',$3,$4,true,'auto_booked') returning id", [leadId, callId, chat, text]);
     const sent = await sendMessage(chat, text);
     await q("update telegram_messages set message_id=$2 where id=$1", [row[0].id, sent.message_id]);
@@ -136,7 +136,7 @@ async function postToTelegram(leadId: string, callId: string, ex: any, decision:
   const chat = isComplaint ? process.env.TELEGRAM_FRONTDESK_CHAT_ID : process.env.TELEGRAM_DESIGNERS_CHAT_ID;
   if (!chat) throw new Error("Telegram chat id not configured");
   const kind = decision.route === "qualified" ? "qualified" : "unclear"; // a booked not_a_fit is reviewed as "unclear"
-  const text = isComplaint ? renderComplaint(ex, link) : renderLead(ex, decision, criteria, link, kind, warn, urgency);
+  const text = isComplaint ? renderComplaint(ex, link, recordingUrl(callId)) : renderLead(ex, decision, criteria, link, kind, warn, urgency, recordingUrl(callId));
   const row = await q(
     "insert into telegram_messages(lead_id, call_id, kind, chat_id, text, compact) values($1,$2,$3,$4,$5,$6) returning id",
     [leadId, callId, isComplaint ? "complaint" : kind, chat, text, compactLine(ex)],

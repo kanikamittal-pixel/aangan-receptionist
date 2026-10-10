@@ -165,3 +165,9 @@ alter table calls add column if not exists raw jsonb;
 alter table telegram_messages add column if not exists compact text;
 
 alter table leads add column if not exists hubspot_note_id text;
+
+alter table leads add column if not exists designer_note text;
+
+alter table leads add column if not exists contacted_at timestamptz;
+
+alter table designers add column if not exists read_only boolean not null default false;

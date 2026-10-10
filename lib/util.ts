@@ -52,3 +52,8 @@ export function phoneLooksValid(raw?: string | null) {
   const d = String(raw ?? "").replace(/\D/g, "");
   return d.length === 10 || (d.length === 11 && d.startsWith("0")) || (d.length === 12 && d.startsWith("91"));
 }
+
+/** Signed link to a call's audio, served by our proxy (Vaani's stream needs our API key). */
+export function recordingUrl(callId: string) {
+  return `${process.env.APP_URL ?? ""}/api/recording/${callId}?t=${sign(callId)}`;
+}

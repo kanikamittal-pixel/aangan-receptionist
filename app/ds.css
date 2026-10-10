@@ -108,3 +108,28 @@ html:has(.ds-root) { background-color: #F9F9FB; }
 .ds-root h1, .ds-root h2, .ds-root h3, .ds-root h4 { line-height: 1.25; }
 .ds-root table { margin: 0; } .ds-root dl { margin: 0; } .ds-root ul { margin: 0; padding: 0; }
 @media (max-width: 1023px) { .ds-root header.ds-header { height: 68px; padding: 0 20px; position: static; } }
+
+.ds-search { display: flex; align-items: center; gap: 8px; background: #F9F9FB; border: 1px solid #f1f5f9; border-radius: 99px; padding: 8px 16px; width: 280px; color: #94a3b8; }
+.ds-search input { border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px; width: 100%; color: #0f172a; }
+.ds-bad { color: #be123c; font-weight: 700; }
+.ds-opt-bad { background: #fff1f2; border-color: #fecdd3; color: #be123c; } .ds-opt-bad svg { color: #be123c; }
+.ds-notes textarea { width: 100%; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px; font: inherit; font-size: 14px; background: #f8fafc; color: #334155; resize: vertical; }
+.ds-notes-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ds-chipbtn { border: 1px solid #e2e8f0; background: #fff; color: #475569; font: inherit; font-weight: 700; font-size: 12.5px; padding: 8px 14px; border-radius: 99px; cursor: pointer; } .ds-chipbtn.on { background: #ecfdf5; border-color: #a7f3d0; color: #059669; }
+.ds-saved { font-size: 12px; color: #94a3b8; }
+.ds-receipt audio { height: 40px; }
+@media (max-width: 1023px) { .ds-search { display: none; } }
+
+/* public call page */
+.ds-talkpage { justify-content: center; align-items: flex-start; }
+.ds-root main.ds-talk { width: 100%; max-width: 560px; padding: 56px 20px; margin: 0 auto; }
+.ds-talkcard { background: #fff; border-radius: 32px; border: 1px solid #f8fafc; box-shadow: 0 10px 40px -10px rgba(0,0,0,.1); padding: 40px 36px; text-align: center; }
+.ds-talkcard h1 { font-size: 34px; letter-spacing: -0.02em; margin: 6px 0 12px; color: #0f172a; }
+.ds-talk-sub { color: #64748b; font-size: 15px; line-height: 1.7; margin: 0 0 28px; }
+.ds-btn-dark { background: #4c0519; color: #fff; font-size: 17px; box-shadow: 0 10px 25px -8px rgba(76,5,25,.45); } .ds-btn-dark:hover { background: #3d0414; }
+.ds-btn-red { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
+.ds-talk-status { margin: 0 0 18px; font-weight: 600; color: #475569; } .ds-talk-status.err { color: #be123c; } .ds-talk-status.live { color: #059669; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.ds-talk-status.live i { width: 10px; height: 10px; border-radius: 99px; background: #10b981; box-shadow: 0 0 0 6px rgba(16,185,129,.18); }
+.ds-try { text-align: left; background: #f8fafc; border-radius: 20px; padding: 20px 22px; margin-top: 28px; } .ds-try ul { margin: 10px 0 0 18px; padding: 0; color: #475569; font-size: 14px; line-height: 1.8; }
+.ds-try-note { font-size: 12px; color: #94a3b8; margin: 12px 0 0; }
+.ds-techlog { text-align: left; margin-top: 20px; font-size: 12px; color: #94a3b8; } .ds-techlog pre { white-space: pre-wrap; margin: 8px 0 0; }

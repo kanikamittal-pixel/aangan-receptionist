@@ -73,17 +73,36 @@ export default function Talk() {
   }
 
   return (
-    <main style={{ textAlign: "center", paddingTop: 60 }}>
-      <h1>Talk to Aangan Studio</h1>
-      <p className="muted">Our voice assistant can answer your questions and book a free design consultation. Speak in English, Hindi or Marathi. Calls are recorded.</p>
-      {(state === "idle" || state === "ended" || state === "error") && (
-        <button className="btn yes" style={{ fontSize: 18, padding: "14px 28px" }} onClick={start}>{state === "idle" ? "🎙 Start call" : "🎙 Start a new call"}</button>
-      )}
-      {state === "connecting" && <p>Connecting…</p>}
-      {state === "live" && (<><p>🟢 Connected. Go ahead and speak.</p><button className="btn no" onClick={end}>End call</button></>)}
-      {state === "ended" && <p className="muted">Call ended. Thank you!</p>}
-      {state === "error" && <p className="err">{msg}</p>}
-      {log.length > 0 && <pre className="muted" style={{ textAlign: "left", fontSize: 12, maxWidth: 560, margin: "24px auto", whiteSpace: "pre-wrap" }}>{log.join("\n")}</pre>}
-    </main>
+    <div className="ds-root ds-talkpage">
+      <main className="ds-talk">
+        <div className="ds-brand" style={{ justifyContent: "center", marginBottom: 28 }}><span className="ds-logo">A</span><span>Aangan Studio</span></div>
+        <div className="ds-talkcard">
+          <p className="ds-kicker" style={{ textAlign: "center" }}>Voice assistant</p>
+          <h1>Talk to us</h1>
+          <p className="ds-talk-sub">Ask about interior design, tell us about your home, and book a free consultation, all by voice. Speak in English, Hindi or Marathi. Calls are recorded.</p>
+
+          {(state === "idle" || state === "ended" || state === "error") && (
+            <button className="ds-btn ds-btn-dark" onClick={start}>{state === "idle" ? "🎙  Start call" : "🎙  Start a new call"}</button>
+          )}
+          {state === "connecting" && <p className="ds-talk-status">Connecting… please allow the microphone.</p>}
+          {state === "live" && (<><p className="ds-talk-status live"><i /> Connected. Go ahead and speak.</p><button className="ds-btn ds-btn-red" onClick={end}>End call</button></>)}
+          {state === "ended" && <p className="ds-talk-status">Call ended. Thank you!</p>}
+          {state === "error" && <p className="ds-talk-status err">{msg}</p>}
+
+          <div className="ds-try">
+            <p className="ds-kicker">What to try</p>
+            <ul>
+              <li>“I want to redo my 3BHK flat in Baner.”</li>
+              <li>Give your name, a 10-digit phone number and an email, and agree to book a consultation.</li>
+              <li>Pick a weekday time between 9 am and 5 pm.</li>
+            </ul>
+            <p className="ds-try-note">Test calls create a real lead, so they appear in the studio dashboard and may book a real slot.</p>
+          </div>
+          {log.length > 0 && (
+            <details className="ds-techlog"><summary>Technical log</summary><pre>{log.join("\n")}</pre></details>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
