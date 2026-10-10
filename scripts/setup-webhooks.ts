@@ -1,17 +1,15 @@
-// Registers the Telegram webhook and the Calendly org webhook against APP_URL.
+// Registers the Telegram and Cal.com webhooks against APP_URL. Safe to run more than once.
 import "./env";
 import { setWebhook } from "../lib/telegram";
-import { registerWebhook } from "../lib/calendly";
+import { registerCalWebhook } from "../lib/cal";
 
 (async () => {
   const base = process.env.APP_URL;
   if (!base) throw new Error("APP_URL not set");
   await setWebhook(`${base}/api/webhooks/telegram`, process.env.TELEGRAM_WEBHOOK_SECRET!);
   console.log("Telegram webhook set");
-  if (process.env.CALENDLY_ADMIN_TOKEN) {
-    await registerWebhook({ token: process.env.CALENDLY_ADMIN_TOKEN }, `${base}/api/webhooks/calendly`, process.env.CALENDLY_WEBHOOK_SIGNING_KEY!)
-      .then(() => console.log("Calendly webhook set"))
-      .catch((e) => console.error("Calendly webhook:", e.message, "(already registered? Needs a paid plan + org admin token)"));
+  if (process.env.CAL_API_KEY && process.env.CAL_WEBHOOK_SECRET) {
+    console.log("Cal.com webhook:", await registerCalWebhook(process.env.CAL_API_KEY, `${base}/api/webhooks/calcom`, process.env.CAL_WEBHOOK_SECRET));
   }
-  console.log(`Register in Vaani (Settings -> Webhooks): ${base}/api/webhooks/vaani?key=<VAANI_WEBHOOK_KEY>`);
+  console.log(`Register in Vaani (Settings -> Webhooks, event call_postprocessing): ${base}/api/webhooks/vaani?key=<VAANI_WEBHOOK_KEY>`);
 })().catch((e) => { console.error(e); process.exit(1); });

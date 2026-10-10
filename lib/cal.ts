@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { safeEqual } from "./util";
 
-// Cal.com API v2. Header versions per docs: bookings "2026-02-25"; slots "2024-09-04" (VERIFY on first live run).
+// Cal.com API v2. Each endpoint family needs its own cal-api-version header: bookings "2026-02-25", slots "2024-09-04", webhooks "2024-08-13".
 const BASE = "https://api.cal.com/v2";
 
 async function calcom<T = any>(key: string, version: string, path: string, init: RequestInit = {}): Promise<T> {
@@ -40,4 +40,15 @@ export async function cancelCalBooking(key: string, uid: string, reason: string)
 export function verifyCalWebhook(header: string | null, raw: string, secret: string) {
   if (!header || !secret) return false;
   return safeEqual(crypto.createHmac("sha256", secret).update(raw).digest("hex"), header);
+}
+
+/** Subscribe the app to booking events. Safe to run twice: an existing subscription is left alone. */
+export async function registerCalWebhook(key: string, url: string, secret: string) {
+  try {
+    await calcom(key, "2024-08-13", "/webhooks", { method: "POST", body: JSON.stringify({ subscriberUrl: url, triggers: ["BOOKING_CREATED", "BOOKING_CANCELLED", "BOOKING_RESCHEDULED"], active: true, secret }) });
+    return "created";
+  } catch (e: any) {
+    if (/409|already exists/i.test(String(e.message))) return "already exists";
+    throw e;
+  }
 }

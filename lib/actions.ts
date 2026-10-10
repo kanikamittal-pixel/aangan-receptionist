@@ -1,13 +1,10 @@
 import { q } from "./db";
 import { assignDesigner, type Designer } from "./assign";
-import { bookConsultation } from "./booking";
 import { syncLeadToHubspot } from "./hubsync";
 import { editMessage, esc } from "./telegram";
 import { fmtDateTime } from "./util";
-import { loadConfig } from "./config";
 import { bookingLinkFor } from "./links";
 import { cancelCalBooking } from "./cal";
-import { cancelEvent } from "./calendly";
 
 const stamp = () => fmtDateTime(new Date());
 
@@ -22,7 +19,7 @@ const logAction = (leadId: string, action: string, d: Designer, detail?: string)
 
 export type ApproveResult =
   | { ok: false; error: "already_decided" | "not_found" }
-  | { ok: true; booking?: { start: string; meetingUrl: string | null }; bookingError?: string; designerName: string; bookingLink?: string | null };
+  | { ok: true; designerName: string; bookingLink: string | null };
 
 /** "Take it forward" / Approve. Atomic: the first designer to decide wins, from Telegram or the dashboard. */
 export async function approveLead(leadId: string, tapped: Designer, via: "telegram" | "dashboard"): Promise<ApproveResult> {
@@ -37,46 +34,25 @@ export async function approveLead(leadId: string, tapped: Designer, via: "telegr
   if (!claimed.length) return { ok: false, error: "already_decided" };
   await q("update telegram_messages set acted=true, action='take', actor_id=$2, actor_name=$3, acted_at=now() where lead_id=$1 and kind in ('qualified','unclear')", [leadId, tapped.telegram_user_id, tapped.name]);
   await logAction(leadId, "take", tapped, `via ${via}; assigned to ${chosen.name}`);
-  const { settings } = await loadConfig();
-  if (!settings.calendly.auto_book_on_approve) {
-    // Accept only: the designer asks the customer's preferred time; the customer picks a slot from the booking link.
-    const [ex] = await q("select extraction->>'email' as email from calls where lead_id=$1 order by started_at desc limit 1", [leadId]);
-    const link = bookingLinkFor(chosen as any, { id: leadId, name: lead.name }, ex?.email);
-    await refreshTelegram(leadId, `✅ <b>Taken by ${esc(chosen.name)}</b> · ${stamp()}\n📞 Ask ${esc(lead.name ?? "the customer")}${lead.phone ? ` (${esc(lead.phone)})` : ""} for a preferred time${link ? `, or send the booking link:\n${esc(link)}` : "."}`);
-    await logAction(leadId, "accepted", tapped, `via ${via}; no auto-booking`);
-    await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
-    return { ok: true, designerName: chosen.name, bookingLink: link };
-  }
-  await refreshTelegram(leadId, `⏳ <b>${esc(chosen.name)}</b> is taking this · booking…`);
-  try {
-    const b = await bookConsultation(leadId, chosen as any);
-    await refreshTelegram(leadId, `✅ <b>Taken by ${esc(chosen.name)}</b> · ${stamp()}\n📅 <b>Consultation: ${fmtDateTime(b.start, chosen.calendly_timezone)}</b>${b.meetingUrl ? `\n🔗 ${esc(b.meetingUrl)}` : ""}`);
-    await logAction(leadId, "booked", tapped, b.start);
-    await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
-    return { ok: true, booking: { start: b.start, meetingUrl: b.meetingUrl }, designerName: chosen.name };
-  } catch (e: any) {
-    await refreshTelegram(leadId, `✅ <b>Taken by ${esc(chosen.name)}</b> · ${stamp()}\n⚠️ <b>Booking failed:</b> ${esc(e.message)}. Please book manually.`);
-    await logAction(leadId, "booking_failed", tapped, e.message);
-    await syncLeadToHubspot(leadId).catch((er) => console.error("[hubspot]", er));
-    return { ok: true, bookingError: e.message, designerName: chosen.name };
-  }
+  // Taking a lead does not book anything: the designer asks the customer's preferred time, or sends the booking link.
+  const [ex] = await q("select extraction->>'email' as email from calls where lead_id=$1 order by started_at desc limit 1", [leadId]);
+  const link = bookingLinkFor(chosen, { id: leadId, name: lead.name }, ex?.email);
+  await refreshTelegram(leadId, `✅ <b>Taken by ${esc(chosen.name)}</b> · ${stamp()}\n📞 Ask ${esc(lead.name ?? "the customer")}${lead.phone ? ` (${esc(lead.phone)})` : ""} for a preferred time${link ? `, or send the booking link:\n${esc(link)}` : "."}`);
+  await logAction(leadId, "taken", tapped, `via ${via}`);
+  await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
+  return { ok: true, designerName: chosen.name, bookingLink: link };
 }
 
 /** Cancel any live meeting for a rejected lead. Returns a short note for the Telegram message. */
 async function cancelLeadBookings(leadId: string): Promise<string> {
-  const rows = await q("select b.*, d.cal_api_key, d.calendly_token from bookings b left join designers d on d.id=b.designer_id where b.lead_id=$1 and b.status='booked'", [leadId]);
+  const rows = await q("select b.*, d.cal_api_key from bookings b left join designers d on d.id=b.designer_id where b.lead_id=$1 and b.status='booked'", [leadId]);
   if (!rows.length) return "";
   const failed: string[] = [];
   for (const b of rows) {
     try {
-      if (b.provider === "cal") {
-        const key = b.cal_api_key ?? process.env.CAL_API_KEY;
-        if (!key) throw new Error("no Cal.com API key (set CAL_API_KEY)");
-        await cancelCalBooking(key, b.external_id, "Declined by designer");
-      } else {
-        if (!b.calendly_token) throw new Error("no Calendly token");
-        await cancelEvent({ token: b.calendly_token }, b.calendly_event_uri, "Declined by designer");
-      }
+      const key = b.cal_api_key ?? process.env.CAL_API_KEY;
+      if (!key) throw new Error("no Cal.com API key (set CAL_API_KEY)");
+      await cancelCalBooking(key, b.external_id, "Declined by designer");
       await q("update bookings set status='canceled', updated_at=now() where id=$1", [b.id]);
       await q("update leads set booking_status='canceled' where id=$1", [leadId]);
     } catch (e: any) { failed.push(e.message); }

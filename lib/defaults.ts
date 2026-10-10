@@ -44,11 +44,10 @@ export const DEFAULT_RULES = {
 };
 
 export const DEFAULT_SETTINGS = {
-  // PROPOSED values the brief left undefined: confirm before go-live.
+  // How long (minutes) a dropped call can be matched to the caller's callback, and when unanswered complaints are reminded.
   merge_window_minutes: 30,
   complaint_reminder_minutes: 30,
   complaint_max_reminders: 2,
-  telegram_group_names: { designers: "Aangan Designers - Leads", front_desk: "Aangan Front Desk - Urgent" },
   hubspot: {
     // Use HubSpot's default pipeline (renamed, with our 7 stages) so everything shows in the one pipeline view. false = create a separate pipeline.
     use_default_pipeline: true,
@@ -63,26 +62,13 @@ export const DEFAULT_SETTINGS = {
       { key: "lost", label: "Lost", probability: 0 },
     ],
   },
-  // Designer assignment RULE is pending: see lib/assign.ts.
+  // Business hours decide the "out of hours" flag. The designer assignment rule lives in lib/assign.ts.
   business_hours: { start_hour: 10, end_hour: 19, days: [0, 1, 2, 3, 4, 5, 6], timezone: "Asia/Kolkata" },
   low_confidence_goes_to_review: true,
   // Telegram only carries what needs attention: qualified leads (action), Vaani bookings (FYI), complaints. "Not sure" leads stay on the dashboard unless this is true.
   telegram: { send_unclear: false },
-  calendly: {
-    // false = Accept does NOT book: the designer asks the customer's preferred time, who then picks a slot from the designer's booking link.
-    auto_book_on_approve: false,
-    search_days: 14,
-    min_notice_hours: 4,
-    // Calendly requires an invitee email. 'placeholder' uses <digits>@<domain> when the caller gave none.
-    email_mode: "placeholder" as "placeholder" | "collected_only",
-    placeholder_domain: "bookings.aangan.example", // last resort: Cal.com REJECTS this (no mail server)
-    fallback_email: "", // optional studio inbox used when the caller gave no email; else the designer's own email is used
-    location_kind: "" as string, // set e.g. "physical" if the event type requires a location
-    location_text: "",
-    pass_text_reminder_number: false,
-  },
   costs: {
-    // VERIFY all three against current Vaani contract / Google pricing.
+    // Estimated rates used for the cost figure on each call. Update them from the Vaani and Google bills.
     voice_rate_inr_per_min: 2.4,
     gemini_in_usd_per_mtok: 0.3,
     gemini_out_usd_per_mtok: 2.5,

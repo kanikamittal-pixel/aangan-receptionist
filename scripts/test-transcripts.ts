@@ -1,5 +1,5 @@
 // Runs T01-T20 through Gemini extraction + hard checks + routing and compares with expected outcomes,
-// then dry-runs the Telegram and Calendly steps against a TEST group and TEST event type.
+// then dry-runs the Telegram and Cal.com steps (a test message, and a test booking that is cancelled again).
 //   npm run test:transcripts                 all transcripts + dry run (if TEST_* env set)
 //   npm run test:transcripts -- --only T01,T07
 //   npm run test:transcripts -- --no-dry-run
@@ -11,7 +11,7 @@ import { decideRoute, type Decision } from "../lib/route";
 import { DEFAULT_RULES, DEFAULT_SETTINGS } from "../lib/defaults";
 import { renderLead } from "../lib/messages";
 import { sendMessage, editMessage } from "../lib/telegram";
-import { cancelEvent, createBooking, findSlots } from "../lib/calendly";
+import { cancelCalBooking, createCalBooking, findCalSlots } from "../lib/cal";
 
 type Expect = { route: Decision["route"]; check?: (r: Result) => string | null; label: string };
 type Result = { ex: Extraction; d: Decision; criteria: any; overrides: any[] };
@@ -77,7 +77,7 @@ async function evaluate(transcript: string, date: Date): Promise<Result> {
 })();
 
 async function dryRun(): Promise<number> {
-  console.log("\n--- Dry run: Telegram + Calendly (test group / test event type) ---");
+  console.log("\n--- Dry run: Telegram + Cal.com ---");
   let bad = 0;
   const chat = process.env.TEST_TELEGRAM_CHAT_ID;
   if (!chat || !process.env.TELEGRAM_BOT_TOKEN) console.log("SKIP  Telegram (set TEST_TELEGRAM_CHAT_ID + TELEGRAM_BOT_TOKEN)");
@@ -92,17 +92,16 @@ async function dryRun(): Promise<number> {
       console.log("PASS  Telegram: sent lead message with buttons, then edited it");
     } catch (e: any) { bad++; console.log("FAIL  Telegram:", e.message); }
   }
-  const token = process.env.TEST_CALENDLY_TOKEN, et = process.env.TEST_CALENDLY_EVENT_TYPE_URI;
-  if (!token || !et) console.log("SKIP  Calendly (set TEST_CALENDLY_TOKEN + TEST_CALENDLY_EVENT_TYPE_URI)");
+  const key = process.env.CAL_API_KEY, eventTypeId = Number(process.env.TEST_CAL_EVENT_TYPE_ID), email = process.env.TEST_ATTENDEE_EMAIL;
+  if (!key || !eventTypeId || !email) console.log("SKIP  Cal.com (set CAL_API_KEY, TEST_CAL_EVENT_TYPE_ID and TEST_ATTENDEE_EMAIL)");
   else {
     try {
-      const auth = { token };
-      const slots = await findSlots(auth, et, new Date(Date.now() + 6 * 3600_000), 14, 1);
+      const slots = await findCalSlots(key, eventTypeId, new Date(Date.now() + 6 * 3600_000), 14, 1);
       if (!slots.length) throw new Error("no available slots on the test event type in 14 days");
-      const b = await createBooking(auth, { eventTypeUri: et, start: slots[0], name: "Dry Run Test", email: "dryrun@bookings.aangan.example", phone: null, timezone: "Asia/Kolkata", s: DEFAULT_SETTINGS.calendly });
-      await cancelEvent(auth, b.eventUri, "Dry run: automated test");
-      console.log(`PASS  Calendly: found slot ${slots[0]}, booked and cancelled ${b.eventUri}`);
-    } catch (e: any) { bad++; console.log("FAIL  Calendly:", e.message); }
+      const b = await createCalBooking(key, { eventTypeId, start: slots[0], name: "Dry Run Test", email, phone: null, timezone: "Asia/Kolkata" });
+      await cancelCalBooking(key, b.uid, "Dry run: automated test");
+      console.log(`PASS  Cal.com: found slot ${slots[0]}, booked and cancelled ${b.uid}`);
+    } catch (e: any) { bad++; console.log("FAIL  Cal.com:", e.message); }
   }
   return bad;
 }
