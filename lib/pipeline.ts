@@ -5,7 +5,7 @@ import { applyHardChecks, computeUrgency } from "./hardchecks";
 import { decideRoute, isSure, type Decision } from "./route";
 import { linkVaaniBooking } from "./autobook";
 import { callCost } from "./cost";
-import { compactLine, renderBooked, renderComplaint, renderLead } from "./messages";
+import { CRITERION_LABEL, compactLine, renderBooked, renderComplaint, renderLead } from "./messages";
 import { sendMessage } from "./telegram";
 import { syncLeadToHubspot } from "./hubsync";
 import { fmtDateTime, istParts, normalizePhone, transcriptUrl } from "./util";
@@ -120,7 +120,7 @@ async function postToTelegram(leadId: string, callId: string, ex: any, decision:
   if (booking && sure) {
     const chat = process.env.TELEGRAM_DESIGNERS_CHAT_ID;
     if (!chat) throw new Error("Telegram chat id not configured");
-    const text = renderBooked(ex, link0, when, booking.host_name, booking.meeting_url, urgency);
+    const text = renderBooked(ex, link0, when, booking.host_name, booking.meeting_url, urgency, decision.noted.map((k) => `${CRITERION_LABEL[k]} unclear: ${criteria[k].reason}`));
     const row = await q("insert into telegram_messages(lead_id, call_id, kind, chat_id, text, acted, action) values($1,$2,'booked',$3,$4,true,'auto_booked') returning id", [leadId, callId, chat, text]);
     const sent = await sendMessage(chat, text);
     await q("update telegram_messages set message_id=$2 where id=$1", [row[0].id, sent.message_id]);

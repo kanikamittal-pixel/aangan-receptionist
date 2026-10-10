@@ -8,3 +8,4 @@ agent/compiled-prompt.md
 .vercel
 seed/
 .claude/
+backup-before-cleanup.json

@@ -46,3 +46,9 @@ export function safeEqual(a: string, b: string) {
   const x = Buffer.from(a), y = Buffer.from(b);
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
+
+/** True for a complete Indian number: 10 digits, 0 + 10, or 91 + 10. */
+export function phoneLooksValid(raw?: string | null) {
+  const d = String(raw ?? "").replace(/\D/g, "");
+  return d.length === 10 || (d.length === 11 && d.startsWith("0")) || (d.length === 12 && d.startsWith("91"));
+}

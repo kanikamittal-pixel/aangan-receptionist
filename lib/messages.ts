@@ -1,13 +1,14 @@
 import type { Extraction, CriterionKey } from "./extract";
 import type { Criteria } from "./hardchecks";
 import type { Decision } from "./route";
-import { esc } from "./util";
+import { esc, phoneLooksValid } from "./util";
 
 export const CRITERION_LABEL: Record<CriterionKey, string> = {
   real_project: "Real project", location: "Service area", timeline: "Timeline", budget: "Budget", decision_maker: "Decision-maker",
 };
 
 const line = (icon: string, v: unknown) => (v ? `${icon} ${esc(v)}` : null);
+const phoneText = (p?: string | null) => (p ? ` · ${esc(p)}${phoneLooksValid(p) ? "" : " ⚠️ <b>number looks incomplete, please check</b>"}` : "");
 
 type Urgency = { urgent: boolean; reason: string | null };
 
@@ -35,7 +36,7 @@ export function renderLead(ex: Extraction, decision: Decision, criteria: Criteri
   const head = urgent?.urgent ? "🔥 <b>URGENT · NEW LEAD</b> · action needed" : kind === "qualified" ? "🟢 <b>NEW LEAD</b> · action needed" : "🟡 <b>NEW LEAD, NOT SURE</b> · your call";
   const lines = [
     head,
-    `<b>${esc(ex.name ?? "Unknown caller")}</b>${ex.phone ? ` · ${esc(ex.phone)}` : ""}`,
+    `<b>${esc(ex.name ?? "Unknown caller")}</b>${phoneText(ex.phone)}`,
     ...facts(ex),
     urgent?.urgent ? `🔥 <b>Why urgent:</b> ${esc(urgent.reason)}` : null,
     ex.is_repeat_caller ? `🔁 <b>Repeat caller:</b> ${esc(ex.repeat_note ?? "called before")}` : null,
@@ -65,16 +66,17 @@ export function renderComplaint(ex: Extraction, link: string) {
 }
 
 /** FYI only: a consultation is already booked. No buttons, nothing to do. */
-export function renderBooked(ex: Extraction, link: string, when: string, host: string | null, meetingUrl: string | null, urgent?: Urgency) {
+export function renderBooked(ex: Extraction, link: string, when: string, host: string | null, meetingUrl: string | null, urgent?: Urgency, notes: string[] = []) {
   return [
     `${urgent?.urgent ? "🔥 <b>URGENT · </b>" : ""}📅 <b>BOOKED</b> · no action needed`,
     `<b>${esc(when)}</b>${host ? ` · with ${esc(host)}` : ""}`,
-    `<b>${esc(ex.name ?? "Unknown caller")}</b>${ex.phone ? ` · ${esc(ex.phone)}` : ""}`,
+    `<b>${esc(ex.name ?? "Unknown caller")}</b>${phoneText(ex.phone)}`,
     meetingUrl ? `🔗 ${esc(meetingUrl)}` : null,
     urgent?.urgent ? `🔥 <b>Why urgent:</b> ${esc(urgent.reason)}` : null,
     ...facts(ex),
     "",
     esc(ex.handoff_summary),
+    ...notes.map((n) => `⚠️ ${esc(n)}`),
     "",
     `📄 <a href="${esc(link)}">Full transcript</a>`,
   ].filter((l) => l !== null).join("\n");

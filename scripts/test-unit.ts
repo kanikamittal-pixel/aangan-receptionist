@@ -74,4 +74,8 @@ t("telegram: lead says 'action needed' and asks the question", (() => { const m 
 t("telegram: urgent lead is marked URGENT first", renderLead(base(), qd, base().criteria, "https://x", "qualified", undefined, { urgent: true, reason: "r" }).startsWith("🔥"));
 t("telegram: booked message says no action needed", renderBooked(base(), "https://x", "Mon 11am", "Aarav", null).includes("no action needed"));
 t("telegram: complaint tells the front desk to call back", renderComplaint(base({ call_type: "complaint", complaint: { project_details: "p", summary: "s" } }), "https://x").includes("CALL THIS CLIENT BACK"));
+import { phoneLooksValid } from "../lib/util";
+t("phone: 10 digits ok, 9 digits flagged", phoneLooksValid("9627000074") && phoneLooksValid("+919627000074") && !phoneLooksValid("962700074"));
+t("booked message shows unclear decision-maker note", renderBooked(base(), "https://x", "Mon 11am", "A", null, undefined, ["Decision-maker unclear: brother decides"]).includes("Decision-maker unclear"));
+t("telegram flags an incomplete phone number", renderLead(base({ phone: "962700074" }), qd, base().criteria, "https://x", "qualified").includes("looks incomplete"));
 process.exit(fail ? 1 : 0);

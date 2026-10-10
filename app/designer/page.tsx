@@ -1,6 +1,6 @@
 import { q } from "@/lib/db";
 import { designerFromToken } from "@/lib/designer-auth";
-import { fmtDateTime, sign } from "@/lib/util";
+import { fmtDateTime, phoneLooksValid, sign } from "@/lib/util";
 import { bookingLinkFor } from "@/lib/links";
 import LeadActions from "@/components/LeadActions";
 
@@ -96,6 +96,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
                     {wa(`Hi ${l.name ?? ""}, this is Aangan Studio about your design enquiry.`) && <a className="d-btn" href={wa(`Hi ${l.name ?? ""}, this is Aangan Studio about your design enquiry.`)!} target="_blank">WhatsApp</a>}
                   </div>
                 )}
+                {l.phone && !phoneLooksValid(l.phone) && <p className="d-urgent">⚠️ The phone number looks incomplete ({l.phone}). Please check it with the customer.</p>}
                 {l.urgent && <p className="d-urgent">🔥 Urgent: {l.urgent_reason}</p>}
                 {ex.is_repeat_caller && <p className="d-note">Repeat caller: {ex.repeat_note ?? "called before"}</p>}
 
