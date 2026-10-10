@@ -1,69 +1,81 @@
-# Aangan Studio: AI phone receptionist (Case 3)
+# Aangan Studio: AI voice receptionist
 
-Phone only. Flow: Vaani voice agent → post-call webhook → Gemini extraction → hard checks in code → routing → Telegram (designers / front desk) → Calendly booking → HubSpot (contact + deal) → Neon log.
+A voice assistant answers every enquiry for **Aangan Studio**, an interior design studio in Pune. It qualifies the caller against the studio's rules, books a free consultation on the designer's calendar during the call, and hands the lead to a designer on **Telegram** and a **web dashboard**. Nikhil (the founder) sees every lead, and the revenue, in **HubSpot**.
 
+![Components map](docs/components-map.png)
+
+## How one call moves through the system
+
+1. **Call.** The caller talks to the Vaani voice agent on the web call page (`/talk`). The agent follows `agent/system-prompt.md`: it asks the 5 qualifying questions, confirms area, phone and email, and never quotes a price.
+2. **Booking.** For a qualified caller, Vaani books the chosen slot on the designer's **Cal.com** calendar while still on the call.
+3. **Webhook.** When the call ends, Vaani posts the transcript and recording to `/api/webhooks/vaani`.
+4. **Extraction.** **Gemini** reads the transcript and returns the lead's details, the 5 criteria with reasons, urgency and a handoff note.
+5. **Hard checks.** Plain code (not AI) checks the service area, project type, size and deadline. If code and AI disagree, code wins and the difference is logged.
+6. **Routing.** The lead becomes *qualified*, *not sure*, *not a fit*, *complaint* or *dropped*, and the call, recording and cost are saved in **Neon**.
+7. **Hand-off.** HubSpot gets a contact and a deal; Telegram gets a message only if someone must act; the dashboard shows the lead.
+8. **Designer.** The designer takes or passes the lead from Telegram or the dashboard, then contacts the customer.
+
+## Where to find things
+
+The repository has three parts. The rule that keeps it easy to read: **the frontend never touches the database.** It asks the backend for data.
+
+| Folder | What it holds |
+|---|---|
+| `frontend/` | Everything a person sees: pages, components, design system, styles |
+| `backend/` | Everything that thinks or talks to other services |
+| `app/` | Next.js routing only: each file is one line that points to `frontend/` or `backend/` |
+| `agent/` | The voice agent's prompt and settings |
+| `scripts/` | Setup, testing and maintenance commands |
+| `docs/` | The components map |
+
+### The connections
+
+| Connection | Code | What it does |
+|---|---|---|
+| **Telegram** | `backend/integrations/telegram/` and `backend/api/telegram-webhook.ts` | `client.ts` sends and edits messages; `messages.ts` builds the message layouts; `handlers.ts` handles the Take / Pass / Callback buttons. Only messages that need action are sent. |
+| **HubSpot (Nikhil)** | `backend/integrations/hubspot/` and `frontend/pages/NikhilDashboard.tsx` | `sync-lead.ts` writes the contact, deal and timeline note; `pipeline-metrics.ts` reads the deals back for Nikhil's dashboard. `npm run hubspot:setup` creates the Sales pipeline and properties. |
+| **Cal.com** | `backend/integrations/calcom/` and `backend/api/calcom-webhook.ts` | Matches a booking made by Vaani to its call; builds the designer's booking link; handles cancelled and rescheduled bookings. |
+| **Vaani** | `backend/integrations/vaani/` and `backend/api/vaani-webhook.ts` | The only code that knows Vaani's payload; turns it into a neutral call object so another channel could reuse the pipeline. |
+| **Gemini** | `backend/integrations/gemini/extract.ts` | Transcript in, structured lead out, with fallback between models. |
+
+### Lead logic and dashboards
+
+| Topic | Code |
+|---|---|
+| Processing a finished call, step by step | `backend/leads/process-call.ts` |
+| Hard checks (area, project type, size, deadline) | `backend/leads/hard-checks.ts` |
+| Routing and "urgent" | `backend/leads/routing.ts` |
+| Take / Pass, cancelling a meeting | `backend/leads/actions.ts` |
+| Who gets a lead | `backend/leads/assign-designer.ts` (one function) |
+| Cost of a call, in ₹ | `backend/leads/cost.ts` |
+| **Designer dashboard** | page `frontend/pages/DesignerDashboard.tsx`, queries `backend/dashboard/designer-leads.ts`, buttons `backend/api/designer-actions.ts` |
+| Dashboard look | `frontend/design-system/` and `frontend/styles/` |
+| Database tables | `backend/database/schema.sql` |
+| Editable rules and settings | `backend/config/` (change them at `/admin` without redeploying) |
+
+## Running it
+
+```bash
+cp .env.example .env.local     # fill in the keys
+npm install
+npm run db:migrate             # create the tables in Neon
+npm run hubspot:setup          # create the Sales pipeline and deal properties
+npm run webhooks:setup         # register the Telegram and Cal.com webhooks
+npm run designer:add -- "Name" <telegram_id|0> --link <cal.com link> --email <email>
+npm run agent:build -- --booking && npm run agent:create   # publish the voice prompt to Vaani
+npm run dev
 ```
-app/api/webhooks/vaani      post-call webhook (parse → lib/pipeline.processInteraction)
-app/api/webhooks/telegram   buttons + decline-reason replies (registered via setWebhook, no polling)
-app/api/webhooks/calendly   cancel / reschedule → lead status
-app/api/cron/reminders      complaint reminders
-app/designer                designer dashboard: /designer?t=<personal token>. Approve (books the meeting) / Reject (needs a reason) / see everything captured
-app/nikhil                  Nikhil's pipeline dashboard, live from HubSpot: /nikhil?t=<NIKHIL_TOKEN>
-app/api/webhooks/calcom     Cal.com cancel/reschedule (Cal.com is an alternative to Calendly, chosen per designer)
-app/admin, /api/admin/*     view calls, edit rules + settings without a redeploy (ADMIN_TOKEN)
-lib/vaani.ts                ONLY file that knows Vaani's payload → NormalizedInteraction (channel-agnostic)
-lib/hardchecks.ts           area / project type / commercial size / <6-week deadline; code overrides AI, logged in calls.overrides
-lib/route.ts                qualified | unclear | complaint | not_a_fit | dropped
-lib/assign.ts               the single designer-assignment function (currently: whoever taps)
-agent/system-prompt.md      Vaani agent prompt; knowledge/*.md are inlined by `npm run agent:build`
-```
 
-## Set up
-1. `cp .env.example .env.local`, fill in keys. `npm install`.
-2. `npm run db:migrate`
-3. `npm run hubspot:setup` (pipeline "Phone Enquiries" + 9 deal properties), then build the dashboard from `docs/HUBSPOT_DASHBOARD.md`.
-4. Deploy: push to GitHub, import in Vercel, add the same env vars, set `APP_URL`.
-5. `npm run webhooks:setup` (Telegram webhook + Calendly org webhook; prints the Vaani URL).
-6. Add each designer (prints their personal dashboard link):
-   `npm run designer:add -- "Name" <telegram_user_id|0> calendly <calendly_PAT> <event_type_uri>` or `... cal <cal_api_key> <cal_event_type_id>`
-7. `npm run agent:build`, then put `agent/compiled-prompt.md` into Vaani and point its post-call webhook at the printed URL.
-8. Put the bot in both groups (designers, front desk), and set the two chat ids.
-
-## Auto-booking by Vaani (for very sure leads)
-Vaani's built-in Cal.com integration books during the call; our backend picks it up from the Cal.com webhook and links it to the call.
-1. Cal.com: create a **team** event type with round-robin hosting (needs Cal.com Teams). Add each designer's `email` to the `designers` table (matches the host to a designer).
-2. Vaani dashboard: Settings -> Integrations -> Cal.com: paste the API key, select that event type.
-3. Cal.com: Settings -> Developer -> Webhooks: URL `<APP_URL>/api/webhooks/calcom`, secret = `CAL_WEBHOOK_SECRET`, triggers Booking created / cancelled / rescheduled.
-4. Only then switch the agent on: `npm run agent:build -- --booking && npm run agent:create` (without `--booking` the agent never claims to book).
-5. Optional: `CAL_API_KEY` (team owner) lets "Decline" cancel a meeting Vaani booked.
-"Very sure" = all five criteria pass + high confidence (`lib/route.ts isSure`). Those leads get an FYI in Telegram, no approval. If our after-call checks disagree with a booking the agent made, the lead goes to a designer with a warning; Decline cancels the meeting.
-
-## Dashboards
-- **Designers** open their own link; Approve and the Telegram "Take it forward" button do the same thing (first decision wins, the other surface updates). Approve books the earliest free slot and shows the meeting link plus a WhatsApp invite link.
-- **Nikhil** reads deals from HubSpot (needs `npm run hubspot:setup` first). `?range=7|30|90|all`.
-- Preview with sample data: `npm run demo:seed` (designer dashboard), `NIKHIL_DEMO=1` (Nikhil's). `npm run demo:clear` removes it.
+Secrets live only in environment variables (never in the code). Dashboard links carry a personal token; a designer can be given a **view-only** link (`npm run viewer:add`).
 
 ## Tests
-- `npm run test:unit`: hard checks and routing, offline.
-- `npm run test:transcripts`: T01–T20 through live Gemini + hard checks vs expected outcomes (T17 as a two-call merge), then a dry run of Telegram (test group) and Calendly (books and cancels a slot on a test event type). Needs `GEMINI_API_KEY`; dry run needs the `TEST_*` vars. Options: `-- --only T01,T07`, `-- --no-dry-run`.
-- Transcripts live in `tests/transcripts/` (regenerate: `python3 scripts/extract_transcripts.py <pdf>`).
 
-## Config defaults to confirm before go-live
-| Setting | Proposed | Where |
-|---|---|---|
-| Dropped-call merge window | 30 min | settings.merge_window_minutes |
-| Complaint reminder | 30 min, up to 2 reminders (30, 60) | settings.complaint_* |
-| Telegram groups | "Aangan Designers - Leads", "Aangan Front Desk - Urgent" | settings.telegram_group_names (names only; ids in env) |
-| HubSpot pipeline/stages | Phone Enquiries: Needs review, Qualified, Consultation booked, Not a fit, Complaint, Won, Lost | settings.hubspot |
-| Designer assignment | **Pending Nikhil's rule**; tapper gets the lead | lib/assign.ts |
+- `npm run test:unit`: 44 offline checks of the hard checks, routing, messages and metrics.
+- `npm run test:transcripts`: runs the 20 sample calls through Gemini and the hard checks and compares each with the expected outcome (all 20 match), then does a dry run of Telegram and Cal.com.
 
-## Open questions / known gaps
-- **Vaani:** payload, signature scheme, inbound number and Marathi support are not in public docs. `lib/vaani.ts` guesses; webhook auth is a shared `?key=`. Consent is a prompt instruction, not a Vaani feature; the extractor records `consent_to_record`.
-- **Calendly needs an invitee email.** Callers don't give one, so a placeholder `<digits>@bookings.aangan.example` is used (`settings.calendly`). Calendly's confirmation email will not reach the caller; the voice agent therefore promises a designer will confirm, not a time. Decide: collect email on the call, or confirm by WhatsApp/SMS. Paid Calendly plans required for each designer.
-- **Timeline rule conflict:** `qualified.md` says site ready within 8–10 weeks of consultation; `services.md` and the brief say under 6 weeks fails. Code uses 6 (`rules.min_weeks_to_deadline`). Confirm.
-- **500 sq ft commercial minimum** comes from transcript T18, not services.md (`rules.commercial_min_sqft`). Confirm.
-- `qualified.md` contains an example budget figure ("₹1–1.5 lakh"); it is in the agent prompt as a rubric example. The prompt forbids quoting prices, but review the first test calls for leakage. The indicative tables from pricing.md are deliberately NOT given to the agent.
-- Reminders need Vercel cron every 5 min (Pro plan) or an external pinger hitting `/api/cron/reminders` with `Authorization: Bearer $CRON_SECRET`.
-- Declining: a Decline tap with no reply leaves the lead claimed in "declining" state; there's no timeout yet.
-- Gemini/Vaani prices in `settings.costs` are placeholders: verify.
-- HubSpot dashboards: manual, see `docs/HUBSPOT_DASHBOARD.md`. Won revenue is read by HubSpot itself from the deal Amount.
+## Versions and deployment
+
+- Every change is a commit with a plain description. The full history is the version history: `git log`.
+- Bigger changes are made on a branch, tested, then merged to `main`.
+- The app runs on **Vercel**; Vercel keeps every earlier deployment, so a bad release can be rolled back in one click.
+- Complaint reminders run on a GitHub Actions schedule (`.github/workflows/reminders.yml`).

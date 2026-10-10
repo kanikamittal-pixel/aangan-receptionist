@@ -1,5 +1,5 @@
 // Defaults for the two editable config documents. The `app_config` table rows
-// 'rules' and 'settings' override these key by key (see lib/config.ts), so
+// 'rules' and 'settings' override these key by key (see backend/config/settings.ts), so
 // Nikhil's office can edit them at /admin without a redeploy.
 //
 // RULES mirror services.md / qualified.md. Values below come from the project brief;
@@ -62,7 +62,7 @@ export const DEFAULT_SETTINGS = {
       { key: "lost", label: "Lost", probability: 0 },
     ],
   },
-  // Business hours decide the "out of hours" flag. The designer assignment rule lives in lib/assign.ts.
+  // Business hours decide the "out of hours" flag. The designer assignment rule lives in backend/leads/assign-designer.ts.
   business_hours: { start_hour: 10, end_hour: 19, days: [0, 1, 2, 3, 4, 5, 6], timezone: "Asia/Kolkata" },
   low_confidence_goes_to_review: true,
   // Telegram only carries what needs attention: qualified leads (action), Vaani bookings (FYI), complaints. "Not sure" leads stay on the dashboard unless this is true.
