@@ -4,6 +4,8 @@ import { bookConsultation } from "./booking";
 import { syncLeadToHubspot } from "./hubsync";
 import { editMessage, esc } from "./telegram";
 import { fmtDateTime } from "./util";
+import { loadConfig } from "./config";
+import { bookingLinkFor } from "./links";
 import { cancelCalBooking } from "./cal";
 import { cancelEvent } from "./calendly";
 
@@ -20,7 +22,7 @@ const logAction = (leadId: string, action: string, d: Designer, detail?: string)
 
 export type ApproveResult =
   | { ok: false; error: "already_decided" | "not_found" }
-  | { ok: true; booking?: { start: string; meetingUrl: string | null }; bookingError?: string; designerName: string };
+  | { ok: true; booking?: { start: string; meetingUrl: string | null }; bookingError?: string; designerName: string; bookingLink?: string | null };
 
 /** "Take it forward" / Approve. Atomic: the first designer to decide wins, from Telegram or the dashboard. */
 export async function approveLead(leadId: string, tapped: Designer, via: "telegram" | "dashboard"): Promise<ApproveResult> {
@@ -35,6 +37,16 @@ export async function approveLead(leadId: string, tapped: Designer, via: "telegr
   if (!claimed.length) return { ok: false, error: "already_decided" };
   await q("update telegram_messages set acted=true, action='take', actor_id=$2, actor_name=$3, acted_at=now() where lead_id=$1 and kind in ('qualified','unclear')", [leadId, tapped.telegram_user_id, tapped.name]);
   await logAction(leadId, "take", tapped, `via ${via}; assigned to ${chosen.name}`);
+  const { settings } = await loadConfig();
+  if (!settings.calendly.auto_book_on_approve) {
+    // Accept only: the designer asks the customer's preferred time; the customer picks a slot from the booking link.
+    const [ex] = await q("select extraction->>'email' as email from calls where lead_id=$1 order by started_at desc limit 1", [leadId]);
+    const link = bookingLinkFor(chosen as any, { id: leadId, name: lead.name }, ex?.email);
+    await refreshTelegram(leadId, `✅ <b>Accepted by ${esc(chosen.name)}</b> · ${stamp()}\n📞 Ask ${esc(lead.name ?? "the customer")}${lead.phone ? ` (${esc(lead.phone)})` : ""} for a preferred time${link ? `, or send the booking link:\n${esc(link)}` : "."}`);
+    await logAction(leadId, "accepted", tapped, `via ${via}; no auto-booking`);
+    await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
+    return { ok: true, designerName: chosen.name, bookingLink: link };
+  }
   await refreshTelegram(leadId, `⏳ <b>${esc(chosen.name)}</b> is taking this · booking…`);
   try {
     const b = await bookConsultation(leadId, chosen as any);

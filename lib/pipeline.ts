@@ -22,8 +22,8 @@ export async function processInteraction(n: NormalizedInteraction) {
   const phone = normalizePhone(n.from);
 
   const inserted = await q(
-    "insert into calls(channel, external_id, from_number, started_at, ended_at, duration_sec, transcript) values($1,$2,$3,$4,$5,$6,$7) on conflict (external_id) do nothing returning id",
-    [n.channel, n.externalId, phone, n.startedAt, n.endedAt, n.durationSec, n.transcript],
+    "insert into calls(channel, external_id, from_number, started_at, ended_at, duration_sec, transcript, raw) values($1,$2,$3,$4,$5,$6,$7,$8) on conflict (external_id) do nothing returning id",
+    [n.channel, n.externalId, phone, n.startedAt, n.endedAt, n.durationSec, n.transcript, n.raw ? JSON.stringify(n.raw) : null],
   );
   if (!inserted.length) return { duplicate: true };
   const callId: string = inserted[0].id;

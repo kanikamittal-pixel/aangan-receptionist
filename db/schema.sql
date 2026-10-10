@@ -157,3 +157,7 @@ create unique index if not exists bookings_provider_ext_idx on bookings(provider
 alter table calls add column if not exists urgent boolean not null default false;
 
 alter table calls add column if not exists urgent_reason text;
+
+alter table designers add column if not exists booking_link text;
+
+alter table calls add column if not exists raw jsonb;

@@ -16,6 +16,8 @@ export type NormalizedInteraction = {
   transcript: string;
   /** seconds from ring to answer, if the platform reports it; null = assume answered immediately */
   answeredAfterSec: number | null;
+  /** Vaani's call metadata without the transcript (end_reason, disconnection, etc.), kept for diagnosis */
+  raw?: Record<string, unknown>;
 };
 
 const pick = (o: any, ...keys: string[]) => { for (const k of keys) { const v = k.split(".").reduce((a, p) => a?.[p], o); if (v != null && v !== "") return v; } return null; };
@@ -30,22 +32,34 @@ export function normalizeTranscript(t: string): string {
     .trim();
 }
 
+/** A usable phone number has at least 10 digits. Web calls carry a junk numeric value (e.g. "622") that must be ignored. */
+function plausiblePhone(v: unknown): string | null {
+  const s = typeof v === "string" || typeof v === "number" ? String(v) : "";
+  return s.replace(/\D/g, "").length >= 10 ? s : null;
+}
+const asDate = (v: unknown): Date | null => { const d = typeof v === "string" || typeof v === "number" ? new Date(v) : null; return d && !isNaN(+d) ? d : null; };
+
 export function parseVaaniWebhook(body: any): NormalizedInteraction {
   const d = body?.data ?? body;
   const id = pick(d, "call_id", "room_name") ?? body?.call_id;
   const raw = pick(d, "transcript");
   if (!id || typeof raw !== "string") throw new Error("Unrecognised Vaani payload: need data.call_id and data.transcript");
-  const ms = Number(pick(d, "call_duration"));
-  const durationSec = Number.isFinite(ms) && ms > 0 ? Math.round(ms / 1000) : null; // call_postprocessing is in ms
-  const ended = new Date(body?.timestamp ?? Date.now());
+
+  const ended = asDate(d.call_ended_at) ?? asDate(body?.timestamp) ?? new Date();
+  const started = asDate(d.picked_up_at) ?? asDate(d.call_started_at);
+  const ms = Number(d.call_duration);
+  // Prefer the timestamps; call_postprocessing's call_duration is in milliseconds.
+  const durationSec = started ? Math.max(0, Math.round((+ended - +started) / 1000)) : Number.isFinite(ms) && ms > 0 ? Math.round(ms / 1000) : null;
+  const { transcript: _t, ...meta } = d;
   return {
     channel: "phone",
     externalId: String(id),
-    from: pick(d, "phone_number", "from_number", "caller_number", "contact_number", "entities.phone", "entities.phone_number"),
-    startedAt: new Date(ended.getTime() - (durationSec ?? 0) * 1000),
+    from: plausiblePhone(d.phone_number) ?? plausiblePhone(body?.from) ?? plausiblePhone(d.entities?.phone) ?? plausiblePhone(d.entities?.phone_number),
+    startedAt: started ?? new Date(+ended - (durationSec ?? 0) * 1000),
     endedAt: ended,
     durationSec,
     transcript: normalizeTranscript(raw),
     answeredAfterSec: null,
+    raw: { ...meta, _from: body?.from ?? null, _to: body?.to ?? null },
   };
 }

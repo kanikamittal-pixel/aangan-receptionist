@@ -65,6 +65,8 @@ export const DEFAULT_SETTINGS = {
   business_hours: { start_hour: 10, end_hour: 19, days: [0, 1, 2, 3, 4, 5, 6], timezone: "Asia/Kolkata" },
   low_confidence_goes_to_review: true,
   calendly: {
+    // false = Accept does NOT book: the designer asks the customer's preferred time, who then picks a slot from the designer's booking link.
+    auto_book_on_approve: false,
     search_days: 14,
     min_notice_hours: 4,
     // Calendly requires an invitee email. 'placeholder' uses <digits>@<domain> when the caller gave none.
