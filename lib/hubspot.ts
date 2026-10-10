@@ -21,11 +21,12 @@ export async function hubspotIds(): Promise<{ pipelineId: string; stages: Record
   return ids;
 }
 
-export async function upsertContact(phone: string | null, name: string | null, existingId?: string | null): Promise<string | null> {
+export async function upsertContact(phone: string | null, name: string | null, existingId?: string | null, email?: string | null): Promise<string | null> {
   if (!phone && !existingId) return null;
   const [first, ...rest] = (name ?? "").split(" ");
   const props: Record<string, string> = {};
   if (phone) props.phone = phone;
+  if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) props.email = email.toLowerCase();
   if (name) { props.firstname = first; if (rest.length) props.lastname = rest.join(" "); }
   let id = existingId ?? null;
   if (!id && phone) {

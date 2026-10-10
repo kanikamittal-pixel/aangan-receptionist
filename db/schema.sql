@@ -163,3 +163,5 @@ alter table designers add column if not exists booking_link text;
 alter table calls add column if not exists raw jsonb;
 
 alter table telegram_messages add column if not exists compact text;
+
+alter table leads add column if not exists hubspot_note_id text;

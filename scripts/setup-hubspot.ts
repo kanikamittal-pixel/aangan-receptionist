@@ -14,6 +14,15 @@ const props: any[] = [
   { name: "assigned_designer", label: "Assigned designer", type: "string", fieldType: "text" },
   { name: "transcript_link", label: "Transcript link", type: "string", fieldType: "text" },
   { name: "call_cost_inr", label: "Cost of this call (INR)", type: "number", fieldType: "number" },
+  { name: "consultation_time", label: "Consultation time", type: "datetime", fieldType: "date" },
+  { name: "meeting_link", label: "Meeting link", type: "string", fieldType: "text" },
+  { name: "booked_by", label: "Booked by", type: "string", fieldType: "text" },
+  { name: "lead_summary", label: "Lead summary", type: "string", fieldType: "textarea" },
+  { name: "lead_location", label: "Location", type: "string", fieldType: "text" },
+  { name: "lead_property", label: "Property and size", type: "string", fieldType: "text" },
+  { name: "lead_scope", label: "Scope of work", type: "string", fieldType: "text" },
+  { name: "lead_timeline", label: "Customer timeline", type: "string", fieldType: "text" },
+  { name: "lead_decision_maker", label: "Decision-maker", type: "string", fieldType: "text" },
 ];
 function yn() { return [{ label: "Yes", value: "true", displayOrder: 0 }, { label: "No", value: "false", displayOrder: 1 }]; }
 
