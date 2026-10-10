@@ -9,48 +9,40 @@ NAVY = "#1f2a4a"
 # (name, subtitle, row background, accent colour, {col: (text, tag)})
 ROWS = [
  ("Caller", "(Customer)", "#e9eefb", "#4f46e5", {
-   0: ("Opens the web call page and taps Start call. A studio phone number can be added later.", "CHANGED"),
-   1: ("Speaks in English, Hindi or Marathi: need, area, size, timeline, name, 10-digit phone, email and preferred slot.", None),
-   5: ("Gets answers on the call; a consultation booked live, or a polite close with a referral. A price is never quoted; complaints get an apology and a callback.", None)}),
- ("Voice Agent", "(Vaani Labs · GPT-4o)", "#fbf7e6", "#3b82f6", {
-   4: ("Answers from the docs, works through the 5 criteria, repeats area, phone and email back for a yes, asks the preferred slot, never quotes a price.", "CHANGED")}),
+   0: ("Opens the web call page and starts the call", "CHANGED"),
+   1: ("Speaks: what they need, area, size, timeline, name, phone, email and preferred time", None),
+   5: ("Gets answers and a booked consultation during the call", None)}),
+ ("Voice Agent", "(Vaani Labs)", "#fbf7e6", "#3b82f6", {
+   4: ("Answers from the studio docs, checks the 5 criteria, confirms phone and email, never quotes a price", None)}),
  ("Cal.com", "(booking)", "#eaf5ee", "#16a34a", {
-   4: ("In-call booking: Vaani books the caller's slot on the designer's calendar, any day, 9 am to 5 pm.", "NEW"),
-   5: ("Booking and video link created; webhooks tell the app (created, cancelled, rescheduled). Customers can also self-book from the designer's link.", "CHANGED")}),
+   4: ("Books the caller's chosen slot on the designer's calendar, during the call", "CHANGED"),
+   5: ("Meeting and video link created; the system is told", None)}),
  ("System", "(Vercel + Neon)", "#eef6ee", "#16a34a", {
-   2: ("services.md, qualified.md and the pricing rule sit in the agent prompt; area list, size limits and the deadline rule are editable config in Neon.", None),
-   3: ("Vaani turns speech to text and runs the live call; after it ends, its webhook delivers the transcript, recording and end reason.", None),
-   5: ("Hard checks in code (area, project type, size, 6-week deadline) override the AI and are logged. Flags urgency, routes the lead, matches the booking, logs call, recording and cost in ₹ to Neon.", "CHANGED")}),
+   2: ("Studio docs and rules: services, 5 criteria, pricing rule (no figures)", None),
+   3: ("Vaani turns speech into text; when the call ends it sends the transcript and recording", None),
+   5: ("Hard checks in code (area, project type, size, deadline), routes the lead, logs the call, recording and cost in Neon", None)}),
  ("AI Model", "(Gemini Flash)", "#f8eef3", "#db2777", {
-   4: ("After the call: extracts lead fields, the 5 criteria with reasons, confidence, urgency signal, handoff note and complaint flag. Falls back across 3 models.", "CHANGED")}),
+   4: ("Reads the transcript: lead details, criteria results, urgency and a short handoff note", None)}),
  ("Telegram", "(Bot connection)", "#edf1fb", "#2563eb", {
-   5: ("Only what needs attention: 🟢/🔥 NEW LEAD (Take / Pass), 📅 BOOKED (no action), 🔴 complaint to the front desk with reminders. Not-sure and not-a-fit leads stay off Telegram.", "CHANGED")}),
- ("Designer dashboard", "(web, personal link)", "#e8f5f8", "#0891b2", {
-   5: ("To review, Upcoming meetings, Taken, Passed, Not a fit. Lead card with summary, 5 checks, recording, transcript, phone alert with email fallback and notes. Take / Pass. View-only link for reviewers.", "NEW")}),
+   5: ("Sends designers only what needs action: new leads (Take / Pass), urgent leads, booked meetings, complaints", "CHANGED")}),
+ ("Designer dashboard", "(web page)", "#e8f5f8", "#0891b2", {
+   5: ("Shows every lead with its details, recording and transcript; the designer takes or passes", "NEW")}),
  ("Studio Team", "(designers, front desk)", "#f1eefa", "#7c3aed", {
-   5: ("Designer asks the preferred time and sends the booking link by WhatsApp or email, or meets the booked consultation. Front desk calls back complaints.", None)}),
+   5: ("Designer contacts the customer or joins the booked meeting; front desk calls back complaints", None)}),
  ("Nikhil", "(HubSpot)", "#f8ece8", "#dc2626", {
-   5: ("One Sales pipeline: Needs review > Qualified > Consultation booked > Not a fit > Complaint > Won > Lost, with booking, summary, note and ₹ cost. /nikhil shows calls, ≤5-min %, out-of-hours, stages, booked and won revenue vs cost.", "CHANGED")}),
+   5: ("Every lead sits in one sales pipeline by stage, with revenue and cost; a dashboard summarises it", None)}),
 ]
-# arrows: (from(row,col), to(row,col), kind)
 FLOWS = [
  ((0,0),(0,1),"h"), ((0,1),(1,4),"right_down"), ((3,2),(3,3),"h"), ((3,3),(1,4),"gutter_up"),
  ((1,4),(0,5),"gutter_up_r"), ((1,4),(2,4),"v"), ((2,4),(2,5),"h"), ((3,3),(4,4),"down_right"),
  ((4,4),(3,5),"gutter_up_r"), ((2,5),(3,5),"v"), ((3,5),(5,5),"bus"), ((3,5),(6,5),"bus"), ((3,5),(8,5),"bus"),
  ((5,5),(7,5),"gutter_down_l"), ((6,5),(7,5),"v"), ((7,5),(8,5),"v"),
 ]
-NOTES = [
- "Trigger: a web call page (WebRTC) replaces the studio phone number for now; the same webhook accepts a phone number later.",
- "Cal.com replaces Calendly. Vaani books during the call; the designer's booking link lets the customer pick a slot; weekends are open.",
- "Telegram carries only actionable messages: qualified or urgent leads (Take / Pass), Vaani bookings (FYI) and complaints. Everything else lives on the dashboard.",
- "New: designer dashboard (search, upcoming meetings, notes, recording, transcript, view-only link) and a phone alert that falls back to the caller's email.",
- "HubSpot: HubSpot's default pipeline is renamed Sales pipeline and holds every lead, qualified or not, plus won revenue; currency is INR.",
- "Gemini Flash now reads the transcript with a 3-model fallback; hard checks still run in code and win over the AI, and every override is logged.",
-]
-FOOT1 = "Build layer: Claude Chat (agent prompt, qualification logic) · Claude Code (webhook, routing, integrations, dashboards) · GitHub → auto-deploy to Vercel · Neon Postgres · tests on all 20 transcripts"
-FOOT2 = "Extends to: WhatsApp and web form feed text into the same webhook (NormalizedInteraction); only Trigger and Input change"
+NOTES = []
+FOOT1 = "Built with: Claude Code · code on GitHub · hosted on Vercel · data in Neon"
+FOOT2 = ""
 
-def wrap(t, n=29): return textwrap.wrap(t, n, break_long_words=False)
+def wrap(t, n=30): return textwrap.wrap(t, n, break_long_words=False)
 
 # ---- layout
 rows_h, boxes = [], {}
@@ -69,8 +61,8 @@ for ri, (_, _, _, acc, cells) in enumerate(ROWS):
         x = ACTOR_W + ci * COL_W + (COL_W - BOX_W) / 2
         by = row_y[ri] + (rows_h[ri] - bh) / 2
         boxes[(ri, ci)] = dict(x=x, y=by, w=BOX_W, h=bh, lines=lines, tag=tag, acc=acc)
-NOTES_H = 60 + len(NOTES) * 22
-H = GRID_BOTTOM + NOTES_H + 96
+NOTES_H = 0
+H = GRID_BOTTOM + 78
 
 def B(k): return boxes[k]
 def R(k): b = B(k); return b["x"] + b["w"]
@@ -99,7 +91,7 @@ o.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" view
 o.append('<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2b3552"/></marker></defs>')
 o.append(f'<rect width="{W}" height="{H}" fill="#ffffff"/>')
 o.append(f'<text x="{W/2}" y="52" text-anchor="middle" font-size="31" font-weight="800" fill="{NAVY}">Case 3 · Unanswered Enquiries — Components Map <tspan fill="#9f1239">(as built)</tspan></text>')
-o.append(f'<text x="{W/2}" y="82" text-anchor="middle" font-size="15" fill="#5b6479">Aangan Studio · web call today, studio phone number later</text>')
+o.append(f'<text x="{W/2}" y="82" text-anchor="middle" font-size="15" fill="#5b6479">Aangan Studio · voice assistant for new enquiries</text>')
 lx = W/2 - 230
 o.append(f'<rect x="{lx}" y="94" width="46" height="16" rx="8" fill="#16a34a"/><text x="{lx+23}" y="106" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">NEW</text><text x="{lx+54}" y="106" font-size="12" fill="#5b6479">added during the build</text>')
 o.append(f'<rect x="{lx+210}" y="94" width="66" height="16" rx="8" fill="#d97706"/><text x="{lx+243}" y="106" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">CHANGED</text><text x="{lx+284}" y="106" font-size="12" fill="#5b6479">differs from the original map</text>')
@@ -131,13 +123,9 @@ for (ri, ci), b in boxes.items():
         col, w = ("#16a34a", 46) if b["tag"] == "NEW" else ("#d97706", 66)
         tx = b["x"] + b["w"] - w - 8
         o.append(f'<rect x="{tx}" y="{b["y"]-8}" width="{w}" height="16" rx="8" fill="{col}"/><text x="{tx+w/2}" y="{b["y"]+3.5}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">{b["tag"]}</text>')
-# notes + footer
-ny = GRID_BOTTOM + 38
-o.append(f'<text x="24" y="{ny}" font-size="15" font-weight="800" fill="{NAVY}">What changed from the original map</text>')
-for i, n in enumerate(NOTES): o.append(f'<text x="24" y="{ny+26+i*22}" font-size="13" fill="#3a4258">• {esc(n)}</text>')
-fy = ny + 26 + len(NOTES) * 22 + 34
-o.append(f'<text x="24" y="{fy}" font-size="13" fill="#3a4258"><tspan font-weight="800">{esc(FOOT1.split(":")[0])}:</tspan>{esc(FOOT1.split(":",1)[1])}</text>')
-o.append(f'<text x="24" y="{fy+24}" font-size="13" fill="#3a4258"><tspan font-weight="800">{esc(FOOT2.split(":")[0])}:</tspan>{esc(FOOT2.split(":",1)[1])}</text>')
+# footer
+fy = GRID_BOTTOM + 44
+o.append(f'<text x="24" y="{fy}" font-size="14" fill="#3a4258"><tspan font-weight="800">{esc(FOOT1.split(":")[0])}:</tspan>{esc(FOOT1.split(":",1)[1])}</text>')
 o.append('</svg>')
 svg = "\n".join(o)
 

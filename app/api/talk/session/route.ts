@@ -26,8 +26,9 @@ export async function POST(req: Request) {
       welcome_interruptible: false,
       modify_agent: { experience: { settings: { idle_conversation_settings: { initial_idle_call_hungup_timeout: 15 } } } },
     });
-    if (!res.ok) { console.error("vaani trigger-call webrtc", res.status, (await res.text()).slice(0, 300)); return Response.json({ error: "Could not start the call. Please try again." }, { status: 502 }); }
+    if (!res.ok) { const t = (await res.text()).slice(0, 300); console.error("vaani trigger-call webrtc", res.status, t); return Response.json({ error: /balance|402|payment/i.test(t) ? "The voice assistant is temporarily unavailable. Please try again later." : "Could not start the call. Please try again." }, { status: 502 }); }
     const j: any = await res.json();
+    if (j.status_code === 402 || /insufficient balance/i.test(String(j.message ?? ""))) { console.error("VAANI WALLET EMPTY:", j.message); return Response.json({ error: "The voice assistant is temporarily unavailable. Please try again later." }, { status: 503 }); }
     if (!j.token || !j.connection_url) { console.error("vaani trigger-call: unexpected response", JSON.stringify(j).slice(0, 300)); return Response.json({ error: "Could not start the call. Please try again." }, { status: 502 }); }
     return Response.json({ lk_url: j.connection_url, lk_token: j.token, session_token: null, room: j.room_name });
   }
