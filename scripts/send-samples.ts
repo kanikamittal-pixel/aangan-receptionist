@@ -1,7 +1,7 @@
 // Sends one sample of each Telegram message to TELEGRAM_DESIGNERS_CHAT_ID. Buttons are inert ("dry:0"). No DB, HubSpot or calendar writes.
 import "./env";
-import { compactLine, renderBooked, renderComplaint, renderLead } from "../lib/messages";
-import { sendMessage } from "../lib/telegram";
+import { compactLine, renderBooked, renderComplaint, renderLead } from "../backend/integrations/telegram/messages";
+import { sendMessage } from "../backend/integrations/telegram/client";
 
 const ok = { result: "pass", reason: "" } as const;
 const base: any = { name: "Priya", phone: "+919800000001", area: "Kothrud", city: "Pune", property_type: "3BHK", carpet_area_sqft: 1400, scope: "Full home: kitchen, living room, 2 bedrooms", timeline_text: "Done by March, no rush", is_repeat_caller: false, handoff_summary: "Priya (via Shruti Joshi) wants a full redesign of her 3BHK in Kothrud. She wants it done by March; her husband knows and is happy to proceed. Next step: take the lead and offer a consultation.", complaint: null };

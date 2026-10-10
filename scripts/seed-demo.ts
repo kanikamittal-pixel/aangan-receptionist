@@ -1,7 +1,7 @@
 // Local demo data for reviewing the dashboards. `npm run demo:seed` / `npm run demo:clear`. Rows are tagged external_id 'demo-%'.
 import "./env";
 import crypto from "node:crypto";
-import { q } from "../lib/db";
+import { q } from "../backend/database/client";
 
 const ex = (o: any) => ({ email: null, city: "Pune", is_repeat_caller: false, repeat_note: null, ...o });
 const ok = (r = "") => ({ result: "pass", reason: r }), un = (r: string) => ({ result: "unclear", reason: r }), no = (r: string) => ({ result: "fail", reason: r });
