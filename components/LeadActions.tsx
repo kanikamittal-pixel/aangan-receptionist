@@ -25,14 +25,14 @@ export default function LeadActions({ leadId, token }: { leadId: string; token: 
     <div className="d-actions">
       {declining ? (
         <>
-          <input autoFocus placeholder="Reason for declining (one line)" value={reason} onChange={(e) => setReason(e.target.value)} />
-          <button className="d-btn d-no" disabled={busy || !reason.trim()} onClick={() => act("reject")}>Decline lead</button>
+          <input autoFocus placeholder="Why are you passing? (one line)" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <button className="d-btn d-no" disabled={busy || !reason.trim()} onClick={() => act("reject")}>Pass on this lead</button>
           <button className="d-btn" onClick={() => setDeclining(false)}>Back</button>
         </>
       ) : (
         <>
-          <button className="d-btn d-yes" disabled={busy} onClick={() => act("approve")}>{busy ? "Saving…" : "Accept lead"}</button>
-          <button className="d-btn" disabled={busy} onClick={() => setDeclining(true)}>Decline</button>
+          <button className="d-btn d-yes" disabled={busy} onClick={() => act("approve")}>{busy ? "Saving…" : "Take this lead"}</button>
+          <button className="d-btn" disabled={busy} onClick={() => setDeclining(true)}>Pass</button>
         </>
       )}
       {msg && <p className="d-err">{msg}</p>}

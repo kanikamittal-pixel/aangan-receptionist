@@ -24,7 +24,7 @@ export async function handleCallback(cb: any) {
     if (!tm) return answerCallback(cb.id, "Already handled");
     await answerCallback(cb.id, "Marked done");
     await q("insert into telegram_actions(telegram_message_id, lead_id, action, actor_id, actor_name) values($1,$2,'callback_done',$3,$4)", [tm.id, tm.lead_id, actorId, actorName]);
-    return editMessage(tm.chat_id, tm.message_id, `${tm.text}\n\n✅ <b>Callback done</b> by ${esc(actorName)} · ${fmtDateTime(new Date())}`);
+    return editMessage(tm.chat_id, tm.message_id, `${tm.compact ? tm.compact + "\n" : tm.text + "\n\n"}✅ <b>Callback done</b> by ${esc(actorName)} · ${fmtDateTime(new Date())}`);
   }
 
   const [designer] = await q<Designer>("select * from designers where telegram_user_id=$1 and active", [actorId]);
@@ -41,7 +41,7 @@ export async function handleCallback(cb: any) {
   const r = await rejectLead(tm.lead_id, designer, null, "telegram");
   if (!r.ok) return answerCallback(cb.id, "Already handled");
   await answerCallback(cb.id);
-  const prompt = await sendMessage(tm.chat_id, `${esc(designer.name)}, one-line reason for declining? <i>Reply to this message.</i>`, undefined, {
+  const prompt = await sendMessage(tm.chat_id, `${esc(designer.name)}, one-line reason for passing? <i>Reply to this message.</i>`, undefined, {
     reply_markup: { force_reply: true, selective: true, input_field_placeholder: "Reason…" },
     reply_to_message_id: tm.message_id,
   });

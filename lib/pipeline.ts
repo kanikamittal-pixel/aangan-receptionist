@@ -5,7 +5,7 @@ import { applyHardChecks, computeUrgency } from "./hardchecks";
 import { decideRoute, isSure, type Decision } from "./route";
 import { linkVaaniBooking } from "./autobook";
 import { callCost } from "./cost";
-import { renderBooked, renderComplaint, renderLead } from "./messages";
+import { compactLine, renderBooked, renderComplaint, renderLead } from "./messages";
 import { sendMessage } from "./telegram";
 import { syncLeadToHubspot } from "./hubsync";
 import { fmtDateTime, istParts, normalizePhone, transcriptUrl } from "./util";
@@ -129,6 +129,8 @@ async function postToTelegram(leadId: string, callId: string, ex: any, decision:
   // Booked, but our checks are not sure (or disagree): a designer must review, and Decline cancels the meeting
   const warn = booking ? `Vaani already booked ${when}${booking.host_name ? ` with ${booking.host_name}` : ""}. Decline cancels it.` : undefined;
   if ((decision.route === "not_a_fit" && !booking) || decision.route === "dropped") return; // logged and flagged in HubSpot only
+  // "Not sure" leads stay on the dashboard; only qualified leads (and review of a booked one) reach Telegram.
+  if (decision.route === "unclear" && !booking && !(await loadConfig()).settings.telegram.send_unclear) return;
   const link = transcriptUrl(callId);
   const isComplaint = decision.route === "complaint";
   const chat = isComplaint ? process.env.TELEGRAM_FRONTDESK_CHAT_ID : process.env.TELEGRAM_DESIGNERS_CHAT_ID;
@@ -136,13 +138,13 @@ async function postToTelegram(leadId: string, callId: string, ex: any, decision:
   const kind = decision.route === "qualified" ? "qualified" : "unclear"; // a booked not_a_fit is reviewed as "unclear"
   const text = isComplaint ? renderComplaint(ex, link) : renderLead(ex, decision, criteria, link, kind, warn, urgency);
   const row = await q(
-    "insert into telegram_messages(lead_id, call_id, kind, chat_id, text) values($1,$2,$3,$4,$5) returning id",
-    [leadId, callId, isComplaint ? "complaint" : kind, chat, text],
+    "insert into telegram_messages(lead_id, call_id, kind, chat_id, text, compact) values($1,$2,$3,$4,$5,$6) returning id",
+    [leadId, callId, isComplaint ? "complaint" : kind, chat, text, compactLine(ex)],
   );
   const id = row[0].id;
   const buttons = isComplaint
     ? [{ text: "✅ Callback done", callback_data: `cb:${id}` }]
-    : [{ text: "✅ Take it forward", callback_data: `take:${id}` }, { text: "❌ Decline", callback_data: `decl:${id}` }];
+    : [{ text: "✅ Take it forward", callback_data: `take:${id}` }, { text: "❌ Pass", callback_data: `decl:${id}` }];
   const sent = await sendMessage(chat, text, buttons);
   await q("update telegram_messages set message_id=$2 where id=$1", [id, sent.message_id]);
 }

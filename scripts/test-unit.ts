@@ -68,4 +68,10 @@ t("urgency: under 6 weeks is a fail, not 'urgent'", !computeUrgency(base({ neede
 t("boundary: exactly 6 weeks away is OK (time of day irrelevant)", applyHardChecks(base({ needed_by_date: "2026-10-20" }), DEFAULT_RULES, new Date("2026-09-08T18:00:00Z")).criteria.timeline.result !== "fail");
 t("boundary: 41 days away fails", applyHardChecks(base({ needed_by_date: "2026-10-19" }), DEFAULT_RULES, new Date("2026-09-08T09:00:00Z")).criteria.timeline.result === "fail");
 t("code overrides an AI timeline fail when the deadline is 12 weeks away (and logs it)", (() => { const r = run({ needed_by_date: "2026-11-30", criteria: { ...base().criteria, timeline: { result: "fail", reason: "AI got the maths wrong" } } }); return r.criteria.timeline.result === "pass" && r.overrides.some((o: any) => o.code === "pass") && r.d.route === "qualified"; })());
+import { renderLead, renderBooked, renderComplaint } from "../lib/messages";
+const qd = decideRoute(base(), applyHardChecks(base(), DEFAULT_RULES, now).criteria, DEFAULT_SETTINGS);
+t("telegram: lead says 'action needed' and asks the question", (() => { const m = renderLead(base(), qd, base().criteria, "https://x", "qualified"); return m.includes("NEW LEAD") && m.includes("action needed") && m.includes("Take this lead, or pass?"); })());
+t("telegram: urgent lead is marked URGENT first", renderLead(base(), qd, base().criteria, "https://x", "qualified", undefined, { urgent: true, reason: "r" }).startsWith("🔥"));
+t("telegram: booked message says no action needed", renderBooked(base(), "https://x", "Mon 11am", "Aarav", null).includes("no action needed"));
+t("telegram: complaint tells the front desk to call back", renderComplaint(base({ call_type: "complaint", complaint: { project_details: "p", summary: "s" } }), "https://x").includes("CALL THIS CLIENT BACK"));
 process.exit(fail ? 1 : 0);

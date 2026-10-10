@@ -6,7 +6,7 @@ import LeadActions from "@/components/LeadActions";
 
 export const dynamic = "force-dynamic";
 
-const TABS = [["review", "To review"], ["accepted", "Accepted"], ["declined", "Declined"], ["notfit", "Not a fit"]] as const;
+const TABS = [["review", "To review"], ["accepted", "Taken"], ["declined", "Passed"], ["notfit", "Not a fit"]] as const;
 const WHERE: Record<string, string> = { review: "l.decision='pending'", accepted: "l.decision='approved'", declined: "l.decision='rejected'", notfit: "l.routing='not_a_fit'" };
 const CRIT: [string, string][] = [["real_project", "Real project"], ["location", "In our area"], ["timeline", "Timeline"], ["budget", "Budget"], ["decision_maker", "Decision-maker"]];
 const MARK: Record<string, string> = { pass: "✓", fail: "✕", unclear: "?" };
@@ -39,8 +39,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
     if (l.urgent) out.push(["Urgent", "red"]);
     if (l.booking_time && l.booking_status !== "canceled") out.push([`Booked ${fmtDateTime(l.booking_time)}`, "green"]);
     else if (l.routing === "unclear") out.push(["Not sure", "amber"]);
-    else if (l.decision === "approved") out.push(["Accepted", "green"]);
-    else if (l.decision === "rejected") out.push(["Declined", "grey"]);
+    else if (l.decision === "approved") out.push(["Taken", "green"]);
+    else if (l.decision === "rejected") out.push(["Passed", "grey"]);
     else if (l.routing === "not_a_fit") out.push(["Not a fit", "grey"]);
     else out.push(["Qualified", "green"]);
     return out;
@@ -114,7 +114,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
 
                 {l.decision === "pending" && (
                   <>
-                    {booked && <p className="d-urgent">Vaani already booked {fmtDateTime(l.booking_time)}. Accepting keeps it; declining cancels it.</p>}
+                    {booked && <p className="d-urgent">Vaani already booked {fmtDateTime(l.booking_time)}. Taking the lead keeps it; passing cancels it.</p>}
                     <LeadActions leadId={l.id} token={t!} />
                   </>
                 )}
@@ -141,7 +141,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
                   </div>
                 )}
 
-                {l.decision === "rejected" && <div className="d-next"><p>Declined by {l.decided_name}{l.decision_note ? `: “${l.decision_note}”` : ""}</p></div>}
+                {l.decision === "rejected" && <div className="d-next"><p>Passed by {l.decided_name}{l.decision_note ? `: “${l.decision_note}”` : ""}</p></div>}
                 {l.routing === "not_a_fit" && l.decision === "none" && <div className="d-next"><p>Screened out automatically. It was not sent to designers.</p></div>}
               </>
             );

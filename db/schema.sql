@@ -161,3 +161,5 @@ alter table calls add column if not exists urgent_reason text;
 alter table designers add column if not exists booking_link text;
 
 alter table calls add column if not exists raw jsonb;
+
+alter table telegram_messages add column if not exists compact text;

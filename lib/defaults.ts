@@ -64,6 +64,8 @@ export const DEFAULT_SETTINGS = {
   // Designer assignment RULE is pending: see lib/assign.ts.
   business_hours: { start_hour: 10, end_hour: 19, days: [0, 1, 2, 3, 4, 5, 6], timezone: "Asia/Kolkata" },
   low_confidence_goes_to_review: true,
+  // Telegram only carries what needs attention: qualified leads (action), Vaani bookings (FYI), complaints. "Not sure" leads stay on the dashboard unless this is true.
+  telegram: { send_unclear: false },
   calendly: {
     // false = Accept does NOT book: the designer asks the customer's preferred time, who then picks a slot from the designer's booking link.
     auto_book_on_approve: false,

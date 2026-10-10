@@ -14,7 +14,7 @@ const stamp = () => fmtDateTime(new Date());
 /** Edit every Telegram lead message for this lead: original text + a status line, buttons removed. */
 export async function refreshTelegram(leadId: string, line: string) {
   const rows = await q("select * from telegram_messages where lead_id=$1 and kind in ('qualified','unclear') and message_id is not null", [leadId]);
-  for (const tm of rows) await editMessage(tm.chat_id, tm.message_id, `${tm.text}\n\n${line}`).catch((e) => console.error("[telegram edit]", e.message));
+  for (const tm of rows) await editMessage(tm.chat_id, tm.message_id, `${tm.compact ? tm.compact + "\n" : tm.text + "\n\n"}${line}`).catch((e) => console.error("[telegram edit]", e.message));
 }
 
 const logAction = (leadId: string, action: string, d: Designer, detail?: string) =>
@@ -42,7 +42,7 @@ export async function approveLead(leadId: string, tapped: Designer, via: "telegr
     // Accept only: the designer asks the customer's preferred time; the customer picks a slot from the booking link.
     const [ex] = await q("select extraction->>'email' as email from calls where lead_id=$1 order by started_at desc limit 1", [leadId]);
     const link = bookingLinkFor(chosen as any, { id: leadId, name: lead.name }, ex?.email);
-    await refreshTelegram(leadId, `✅ <b>Accepted by ${esc(chosen.name)}</b> · ${stamp()}\n📞 Ask ${esc(lead.name ?? "the customer")}${lead.phone ? ` (${esc(lead.phone)})` : ""} for a preferred time${link ? `, or send the booking link:\n${esc(link)}` : "."}`);
+    await refreshTelegram(leadId, `✅ <b>Taken by ${esc(chosen.name)}</b> · ${stamp()}\n📞 Ask ${esc(lead.name ?? "the customer")}${lead.phone ? ` (${esc(lead.phone)})` : ""} for a preferred time${link ? `, or send the booking link:\n${esc(link)}` : "."}`);
     await logAction(leadId, "accepted", tapped, `via ${via}; no auto-booking`);
     await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
     return { ok: true, designerName: chosen.name, bookingLink: link };
@@ -94,7 +94,7 @@ export async function rejectLead(leadId: string, d: Designer, reason: string | n
   await q("update telegram_messages set acted=true, action=$4, actor_id=$2, actor_name=$3, acted_at=now() where lead_id=$1 and kind in ('qualified','unclear')", [leadId, d.telegram_user_id, d.name, reason ? "decline" : "decline_pending"]);
   await logAction(leadId, reason ? "decline" : "decline_pending", d, reason ?? `via ${via}`);
   const cancelled = await cancelLeadBookings(leadId);
-  await refreshTelegram(leadId, (reason ? `❌ <b>Declined by ${esc(d.name)}</b> · ${stamp()}\n“${esc(reason)}”` : `❌ <b>Declining</b> · ${esc(d.name)} · ${stamp()} (reason needed)`) + cancelled);
+  await refreshTelegram(leadId, (reason ? `❌ <b>Passed by ${esc(d.name)}</b> · ${stamp()}\n“${esc(reason)}”` : `❌ <b>Passing</b> · ${esc(d.name)} · ${stamp()} (reason needed)`) + cancelled);
   if (reason) await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
   return { ok: true as const };
 }
@@ -103,6 +103,6 @@ export async function setRejectReason(leadId: string, d: Designer, reason: strin
   await q("update leads set decision_note=$2, updated_at=now() where id=$1", [leadId, reason]);
   await q("update telegram_messages set action='decline' where lead_id=$1 and action='decline_pending'", [leadId]);
   await logAction(leadId, "decline", d, reason);
-  await refreshTelegram(leadId, `❌ <b>Declined by ${esc(d.name)}</b> · ${stamp()}\n“${esc(reason)}”`);
+  await refreshTelegram(leadId, `❌ <b>Passed by ${esc(d.name)}</b> · ${stamp()}\n“${esc(reason)}”`);
   await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
 }
