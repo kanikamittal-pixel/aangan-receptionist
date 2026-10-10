@@ -2,10 +2,16 @@ import type { Rules } from "./defaults";
 import { CRITERIA_KEYS, type CriterionKey, type Extraction } from "./extract";
 
 export type Criteria = Extraction["criteria"];
-export type Override = { criterion: CriterionKey; ai: string; code: "fail"; reason: string };
+export type Override = { criterion: CriterionKey; ai: string; code: "fail" | "pass"; reason: string };
 
 const norm = (s?: string | null) => (s ?? "").toLowerCase().replace(/[^a-z0-9 \-]/g, " ").replace(/\s+/g, " ").trim();
 const hasTerm = (hay: string, term: string) => new RegExp(`(^|[^a-z])${term.replace(/[-\s]/g, "[-\\s]")}([^a-z]|$)`).test(hay);
+
+/** Whole days from today (India date) to a YYYY-MM-DD date: time of day never tips a boundary case. */
+function daysUntil(date: string, now: Date): number {
+  const today = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // YYYY-MM-DD
+  return Math.round((Date.parse(date + "T00:00:00Z") - Date.parse(today + "T00:00:00Z")) / 86_400_000);
+}
 
 /** Deterministic checks. Code wins over the AI; every disagreement is returned for logging. */
 export function applyHardChecks(ex: Extraction, rules: Rules, now: Date) {
@@ -43,11 +49,16 @@ export function applyHardChecks(ex: Extraction, rules: Rules, now: Date) {
 
   // Needed-by date under N weeks from today
   if (ex.needed_by_date && /^\d{4}-\d{2}-\d{2}$/.test(ex.needed_by_date)) {
-    const days = (new Date(ex.needed_by_date + "T00:00:00Z").getTime() - now.getTime()) / 86_400_000;
+    const days = daysUntil(ex.needed_by_date, now);
     if (days < rules.min_weeks_to_deadline * 7) {
       const later = ex.criteria.timeline.reason;
       force("timeline", `Needed by ${ex.needed_by_date}, under ${rules.min_weeks_to_deadline} weeks away` +
         (/nov|later|after|start/i.test(later) ? `. Note: ${later}` : ""));
+    } else if (criteria.timeline.result !== "pass") {
+      // The date arithmetic is code's job: a stated deadline at least N weeks away passes, whatever the AI concluded.
+      const reason = `Needed by ${ex.needed_by_date}, ${Math.round(days / 7)} weeks away (at least ${rules.min_weeks_to_deadline})`;
+      overrides.push({ criterion: "timeline", ai: criteria.timeline.result, code: "pass", reason });
+      criteria.timeline = { result: "pass", reason };
     }
   }
 
@@ -60,7 +71,7 @@ export function unclearCriteria(c: Criteria) { return CRITERIA_KEYS.filter((k) =
 /** URGENT = needed-by date inside the urgent window (but not already failing the minimum lead time) or the caller signals urgency. */
 export function computeUrgency(ex: Extraction, rules: Rules, now: Date): { urgent: boolean; reason: string | null } {
   if (ex.needed_by_date && /^\d{4}-\d{2}-\d{2}$/.test(ex.needed_by_date)) {
-    const weeks = (new Date(ex.needed_by_date + "T00:00:00Z").getTime() - now.getTime()) / (7 * 86_400_000);
+    const weeks = daysUntil(ex.needed_by_date, now) / 7;
     if (weeks >= rules.min_weeks_to_deadline && weeks <= rules.urgent_within_weeks) return { urgent: true, reason: `Needed by ${ex.needed_by_date} (~${Math.round(weeks)} weeks)` };
   }
   if (ex.urgency_signal) return { urgent: true, reason: ex.urgency_reason || "Caller asked for urgency" };

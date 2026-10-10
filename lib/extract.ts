@@ -47,7 +47,7 @@ export function buildPrompt(transcript: string, callDate: Date, rules: Rules) {
   const today = callDate.toISOString().slice(0, 10);
   return `You read a phone-call transcript between a caller and the studio's receptionist (voice agent or front desk) for Aangan Studio, an interior design studio in Pune. Return ONLY one JSON object, no prose.
 
-Today's date (call date): ${today}. Resolve relative dates ("by March", "before Diwali", "in 3 weeks") to a YYYY-MM-DD in needed_by_date (use the END of a named month; null if no date is stated).
+Today's date (call date): ${today}. needed_by_date is the date the FINISHED project or move-in must be ready by. Resolve relative deadlines ("done by March", "before Diwali", "need it done in 3 weeks") to a YYYY-MM-DD (use the END of a named month). A possession date or a date they want to START on (e.g. "I get possession in six weeks, want to start now") is NOT a deadline: leave needed_by_date null and describe it in timeline_text. null if no deadline is stated.
 
 Evaluate the five criteria (pass / fail / unclear, each with a one-line reason):
 ${Object.values(rules.criteria_text).join("\n")}

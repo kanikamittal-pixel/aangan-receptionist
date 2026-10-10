@@ -29,7 +29,7 @@ t("commercial 180 sq ft below minimum", run({ project_category: "commercial_othe
 t("needed in 3 weeks fails timeline", run({ needed_by_date: "2026-09-29" }).criteria.timeline.result === "fail");
 t("needed in 8 weeks ok", run({ needed_by_date: "2026-11-10" }).d.route === "qualified");
 t("budget unclear still qualified, noted", (() => { const r = run({ criteria: { ...base().criteria, budget: { result: "unclear", reason: "?" } } }); return r.d.route === "qualified" && r.d.noted.includes("budget"); })());
-t("timeline unclear -> designer decides", run({ criteria: { ...base().criteria, timeline: { result: "unclear", reason: "?" } } }).d.route === "unclear");
+t("timeline unclear (no deadline given) -> designer decides", run({ needed_by_date: null, criteria: { ...base().criteria, timeline: { result: "unclear", reason: "?" } } }).d.route === "unclear");
 t("budget fail -> not a fit", run({ criteria: { ...base().criteria, budget: { result: "fail", reason: "1L for kitchen+bedroom" } } }).d.route === "not_a_fit");
 t("complaint routes to complaint", run({ call_type: "complaint" }).d.route === "complaint");
 t("dropped call is held", run({ call_type: "dropped_call" }).d.route === "dropped");
@@ -65,4 +65,7 @@ t("urgency: needed in 8 weeks is urgent", computeUrgency(base({ needed_by_date: 
 t("urgency: needed by March is not urgent", !computeUrgency(base(), DEFAULT_RULES, now).urgent);
 t("urgency: caller signal makes it urgent", computeUrgency(base({ urgency_signal: true, urgency_reason: "possession next month" }), DEFAULT_RULES, now).urgent);
 t("urgency: under 6 weeks is a fail, not 'urgent'", !computeUrgency(base({ needed_by_date: "2026-09-29" }), DEFAULT_RULES, now).urgent);
+t("boundary: exactly 6 weeks away is OK (time of day irrelevant)", applyHardChecks(base({ needed_by_date: "2026-10-20" }), DEFAULT_RULES, new Date("2026-09-08T18:00:00Z")).criteria.timeline.result !== "fail");
+t("boundary: 41 days away fails", applyHardChecks(base({ needed_by_date: "2026-10-19" }), DEFAULT_RULES, new Date("2026-09-08T09:00:00Z")).criteria.timeline.result === "fail");
+t("code overrides an AI timeline fail when the deadline is 12 weeks away (and logs it)", (() => { const r = run({ needed_by_date: "2026-11-30", criteria: { ...base().criteria, timeline: { result: "fail", reason: "AI got the maths wrong" } } }); return r.criteria.timeline.result === "pass" && r.overrides.some((o: any) => o.code === "pass") && r.d.route === "qualified"; })());
 process.exit(fail ? 1 : 0);
