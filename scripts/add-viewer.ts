@@ -2,7 +2,7 @@
 //   npm run viewer:add -- "Instructor"
 import "./env";
 import crypto from "node:crypto";
-import { q } from "../lib/db";
+import { q } from "../backend/database/client";
 
 const name = process.argv[2] ?? "Instructor (view only)";
 (async () => {

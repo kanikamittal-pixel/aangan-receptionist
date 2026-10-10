@@ -1,7 +1,7 @@
 // Registers the Telegram and Cal.com webhooks against APP_URL. Safe to run more than once.
 import "./env";
-import { setWebhook } from "../lib/telegram";
-import { registerCalWebhook } from "../lib/cal";
+import { setWebhook } from "../backend/integrations/telegram/client";
+import { registerCalWebhook } from "../backend/integrations/calcom/client";
 
 (async () => {
   const base = process.env.APP_URL;

@@ -5,13 +5,13 @@
 //   npm run test:transcripts -- --no-dry-run
 import "./env";
 import fs from "node:fs";
-import { extractTranscript, type Extraction } from "../lib/extract";
-import { applyHardChecks } from "../lib/hardchecks";
-import { decideRoute, type Decision } from "../lib/route";
-import { DEFAULT_RULES, DEFAULT_SETTINGS } from "../lib/defaults";
-import { renderLead } from "../lib/messages";
-import { sendMessage, editMessage } from "../lib/telegram";
-import { cancelCalBooking, createCalBooking, findCalSlots } from "../lib/cal";
+import { extractTranscript, type Extraction } from "../backend/integrations/gemini/extract";
+import { applyHardChecks } from "../backend/leads/hard-checks";
+import { decideRoute, type Decision } from "../backend/leads/routing";
+import { DEFAULT_RULES, DEFAULT_SETTINGS } from "../backend/config/defaults";
+import { renderLead } from "../backend/integrations/telegram/messages";
+import { sendMessage, editMessage } from "../backend/integrations/telegram/client";
+import { cancelCalBooking, createCalBooking, findCalSlots } from "../backend/integrations/calcom/client";
 
 type Expect = { route: Decision["route"]; check?: (r: Result) => string | null; label: string };
 type Result = { ex: Extraction; d: Decision; criteria: any; overrides: any[] };

@@ -3,7 +3,7 @@
 // Telegram id 0 = a designer who only uses the dashboard.
 import "./env";
 import crypto from "node:crypto";
-import { q } from "../lib/db";
+import { q } from "../backend/database/client";
 
 const args = process.argv.slice(2);
 const flag = (n: string) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] ?? null : null; };

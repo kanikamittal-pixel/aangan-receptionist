@@ -1,7 +1,7 @@
 // Creates the deal pipeline + custom deal properties. Safe to re-run.
 import "./env";
-import { hs } from "../lib/hubspot";
-import { loadConfig, setConfigValue } from "../lib/config";
+import { hs } from "../backend/integrations/hubspot/client";
+import { loadConfig, setConfigValue } from "../backend/config/settings";
 
 const GROUP = "aangan_phone";
 const props: any[] = [
