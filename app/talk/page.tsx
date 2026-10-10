@@ -6,25 +6,58 @@ type State = "idle" | "connecting" | "live" | "ended" | "error";
 export default function Talk() {
   const [state, setState] = useState<State>("idle");
   const [msg, setMsg] = useState("");
+  const [log, setLog] = useState<string[]>([]);
+  const note = (t: string) => setLog((l) => [...l.slice(-14), `${new Date().toLocaleTimeString()}  ${t}`]);
   const room = useRef<any>(null);
   const token = useRef<string>("");
+  const lastUserSpeech = useRef<number>(0);
+  const agentWasSpeaking = useRef<boolean>(false);
+  const t0 = useRef<number>(0);
 
   async function start() {
-    setState("connecting"); setMsg("");
+    setState("connecting"); setMsg(""); setLog([]); t0.current = Date.now(); lastUserSpeech.current = 0; agentWasSpeaking.current = false;
+    const since = () => `${((Date.now() - t0.current) / 1000).toFixed(1)}s`;
     try {
-      const r = await fetch("/api/talk/session", { method: "POST" });
+      // 1. Microphone FIRST (permission prompt + device start-up), so the caller is ready before the agent greets.
+      const { Room, RoomEvent, Track, DisconnectReason, createLocalAudioTrack, ConnectionState } = await import("livekit-client");
+      note("asking for microphone…");
+      const micTrack = await createLocalAudioTrack({ echoCancellation: true, noiseSuppression: true, autoGainControl: true });
+      note(`microphone ready after ${since()}`);
+
+      // 2. Create the Vaani session and exchange it for room credentials.
+      const r = await fetch("/api/talk/session" + (location.search.includes("old") ? "?old=1" : ""), { method: "POST" });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Could not start the call");
-      token.current = j.session_token;
-      const { Room, RoomEvent, Track } = await import("livekit-client");
+      token.current = j.session_token ?? "";
+      note(`session created after ${since()}`);
+
+      // 3. Join the room and publish the already-running microphone straight away.
       const rm = new Room();
       room.current = rm;
-      rm.on(RoomEvent.TrackSubscribed, (track) => {
+      rm.on(RoomEvent.TrackSubscribed, (track, _pub, part) => {
+        note(`audio from ${part.identity}`);
         if (track.kind === Track.Kind.Audio) { const el = track.attach(); el.style.display = "none"; document.body.appendChild(el); }
       });
-      rm.on(RoomEvent.Disconnected, () => { setState("ended"); document.querySelectorAll("audio").forEach((a) => a.remove()); });
+      rm.on(RoomEvent.Disconnected, (reason) => { note(`DISCONNECTED: ${reason !== undefined ? DisconnectReason[reason] ?? reason : "unknown"}`); setState("ended"); micTrack.stop(); document.querySelectorAll("audio").forEach((a) => a.remove()); });
+      rm.on(RoomEvent.ParticipantConnected, (p) => note(`joined: ${p.identity} (${p.kind})`));
+      rm.on(RoomEvent.ParticipantDisconnected, (p) => note(`LEFT: ${p.identity}`));
+      rm.on(RoomEvent.ConnectionStateChanged, (st: any) => note(`connection: ${st}`));
+      rm.on(RoomEvent.Reconnecting, () => note("reconnecting…"));
+      rm.on(RoomEvent.Reconnected, () => note("reconnected"));
+      rm.on(RoomEvent.ActiveSpeakersChanged, (sp) => {
+        const now = Date.now();
+        const user = sp.some((x) => x.identity.startsWith("web-user"));
+        const agent = sp.some((x) => x.identity.startsWith("agent"));
+        if (user) lastUserSpeech.current = now;
+        if (agent && !agentWasSpeaking.current && lastUserSpeech.current && now - lastUserSpeech.current < 30000)
+          note(`⏱ agent started answering ${((now - lastUserSpeech.current) / 1000).toFixed(1)}s after you last spoke`);
+        agentWasSpeaking.current = agent;
+      });
       await rm.connect(j.lk_url, j.lk_token);
-      await rm.localParticipant.setMicrophoneEnabled(true);
+      note(`joined room after ${since()}`);
+      const t1 = Date.now();
+      await rm.localParticipant.publishTrack(micTrack);
+      note(`microphone published in ${((Date.now() - t1) / 1000).toFixed(1)}s (total ${since()})`);
       setState("live");
     } catch (e: any) {
       setState("error");
@@ -50,6 +83,7 @@ export default function Talk() {
       {state === "live" && (<><p>🟢 Connected. Go ahead and speak.</p><button className="btn no" onClick={end}>End call</button></>)}
       {state === "ended" && <p className="muted">Call ended. Thank you!</p>}
       {state === "error" && <p className="err">{msg}</p>}
+      {log.length > 0 && <pre className="muted" style={{ textAlign: "left", fontSize: 12, maxWidth: 560, margin: "24px auto", whiteSpace: "pre-wrap" }}>{log.join("\n")}</pre>}
     </main>
   );
 }
