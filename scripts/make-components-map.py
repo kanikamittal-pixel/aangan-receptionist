@@ -27,11 +27,12 @@ ROWS = [
    5: ("Sends designers only what needs action: new leads (Take / Pass), urgent leads, booked meetings, complaints", "CHANGED")}),
  ("Designer dashboard", "(web page)", "#e8f5f8", "#0891b2", {
    5: ("Shows every lead with its details, recording and transcript; the designer takes or passes", "NEW")}),
- ("Studio Team", "(designers, front desk)", "#f1eefa", "#7c3aed", {
-   5: ("Designer contacts the customer or joins the booked meeting; front desk calls back complaints", None)}),
+ ("Studio Team", "(designers)", "#f1eefa", "#7c3aed", {
+   5: ("Designer contacts the customer or joins the booked meeting; complaints get a callback", None)}),
  ("Nikhil", "(HubSpot)", "#f8ece8", "#dc2626", {
    5: ("Every lead sits in one sales pipeline by stage, with revenue and cost; a dashboard summarises it", None)}),
 ]
+ROWS = [(n, sb, bg, ac, {k: (t, None) for k, (t, _) in c.items()}) for (n, sb, bg, ac, c) in ROWS]
 FLOWS = [
  ((0,0),(0,1),"h"), ((0,1),(1,4),"right_down"), ((3,2),(3,3),"h"), ((3,3),(1,4),"gutter_up"),
  ((1,4),(0,5),"gutter_up_r"), ((1,4),(2,4),"v"), ((2,4),(2,5),"h"), ((3,3),(4,4),"down_right"),
@@ -50,7 +51,7 @@ for ri, (_, _, _, _, cells) in enumerate(ROWS):
     mh = max([len(wrap(t)) * FONT_LH + 26 for (t, _) in cells.values()] + [60])
     rows_h.append(mh + 2 * PAD)
 W = ACTOR_W + COL_W * len(COLS) + 46          # right gutter for the bus
-TITLE_H, HEAD_H = 118, 58
+TITLE_H, HEAD_H = 100, 58
 y = TITLE_H + HEAD_H
 row_y = []
 for h in rows_h: row_y.append(y); y += h
@@ -92,9 +93,6 @@ o.append('<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidt
 o.append(f'<rect width="{W}" height="{H}" fill="#ffffff"/>')
 o.append(f'<text x="{W/2}" y="52" text-anchor="middle" font-size="31" font-weight="800" fill="{NAVY}">Case 3 · Unanswered Enquiries — Components Map <tspan fill="#9f1239">(as built)</tspan></text>')
 o.append(f'<text x="{W/2}" y="82" text-anchor="middle" font-size="15" fill="#5b6479">Aangan Studio · voice assistant for new enquiries</text>')
-lx = W/2 - 230
-o.append(f'<rect x="{lx}" y="94" width="46" height="16" rx="8" fill="#16a34a"/><text x="{lx+23}" y="106" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">NEW</text><text x="{lx+54}" y="106" font-size="12" fill="#5b6479">added during the build</text>')
-o.append(f'<rect x="{lx+210}" y="94" width="66" height="16" rx="8" fill="#d97706"/><text x="{lx+243}" y="106" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">CHANGED</text><text x="{lx+284}" y="106" font-size="12" fill="#5b6479">differs from the original map</text>')
 # header bar
 o.append(f'<path d="M14,{TITLE_H} h{W-28} a14,14 0 0 1 14,14 v{HEAD_H-14} h-{W} v-{HEAD_H-14} a14,14 0 0 1 14,-14 z" fill="{NAVY}"/>'.replace(f"h{W-28}", f"h{W-28}"))
 o.append(f'<rect x="0" y="{TITLE_H}" width="{W}" height="{HEAD_H}" fill="{NAVY}" rx="14"/>')
