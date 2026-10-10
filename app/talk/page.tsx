@@ -94,7 +94,7 @@ export default function Talk() {
             <ul>
               <li>“I want to redo my 3BHK flat in Baner.”</li>
               <li>Give your name, a 10-digit phone number and an email, and agree to book a consultation.</li>
-              <li>Pick a weekday time between 9 am and 5 pm.</li>
+              <li>Pick any day, including weekends, between 9 am and 5 pm.</li>
             </ul>
             <p className="ds-try-note">Test calls create a real lead, so they appear in the studio dashboard and may book a real slot.</p>
           </div>
