@@ -31,7 +31,7 @@ async function v<T = any>(path: string, init: RequestInit = {}): Promise<T> {
 
   const listed: any = await v(`/api/agents?search=${NAME}`); // read-only; also proves the key works
   const agents: any[] = Array.isArray(listed) ? listed : listed.agents ?? listed.data ?? [];
-  let id: string | undefined = agents.find((a) => (a.agent_display_name ?? a.agent_name) === NAME)?.agent_id;
+  let id: string | undefined = process.env.VAANI_AGENT_ID || agents.find((a) => (a.agent_display_name ?? a.display_name) === NAME)?.id;
 
   if (id) {
     await v(`/api/agent/${id}/persona`, { method: "PATCH", body: JSON.stringify(persona) });
