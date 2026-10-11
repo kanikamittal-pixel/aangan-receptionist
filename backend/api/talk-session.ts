@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   if (recent.length >= 6) return Response.json({ error: "Too many call attempts. Please try again later." }, { status: 429 });
   hits.set(ip, [...recent, now]);
 
-  // Default path: Create Dispatch (medium "webrtc") with a per-call override of the initial-silence hang-up (10s -> 15s).
+  // Default path: Create Dispatch (medium "webrtc") with a per-call override of the initial-silence hang-up (10s -> 45s).
   // `?old=1` falls back to the plain session API (agent config as stored, no override).
   if (!new URL(req.url).searchParams.has("old")) {
     const res = await vaani("/api/trigger-call/", {
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       secondary_language: "hi",
       welcome_message: "Good day, Aangan Studio. This call is recorded to help us serve you better. Is that okay?",
       welcome_interruptible: false,
-      modify_agent: { experience: { settings: { idle_conversation_settings: { initial_idle_call_hungup_timeout: 15 } } } },
+      modify_agent: { experience: { settings: { idle_conversation_settings: { initial_idle_call_hungup_timeout: 45 } } } },
     });
     if (!res.ok) { const t = (await res.text()).slice(0, 300); console.error("vaani trigger-call webrtc", res.status, t); return Response.json({ error: /balance|402|payment/i.test(t) ? "The voice assistant is temporarily unavailable. Please try again later." : "Could not start the call. Please try again." }, { status: 502 }); }
     const j: any = await res.json();
