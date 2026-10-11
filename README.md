@@ -71,7 +71,7 @@ Secrets live only in environment variables (never in the code). Each designer's 
 
 ## Tests
 
-- `npm run test:unit`: 45 offline checks of the hard checks, routing, messages and metrics.
+- `npm run test:unit`: 48 offline checks of the hard checks, routing, messages and metrics.
 - `npm run test:transcripts`: runs the 20 sample calls through Gemini and the hard checks and compares each with the expected outcome (all 20 match), then does a dry run of Telegram and Cal.com.
 
 ## Versions and deployment
