@@ -2,9 +2,9 @@
 
 HubSpot's public API can create pipelines and properties (done by `npm run hubspot:setup`) but I found no endpoint that creates **reports**, so the dashboard is built once in the UI from the properties the code writes. Needs a HubSpot tier with custom reports (Sales Hub Professional or above; confirm).
 
-All reports use the **Deals** data source, filtered to pipeline **Phone Enquiries** (add that filter to every report).
+All reports use the **Deals** data source, filtered to pipeline **Sales pipeline** (add that filter to every report).
 
-**Create the dashboard:** Reporting → Dashboards → Create dashboard → name "Aangan: Phone Enquiries" → Private/Everyone as Nikhil prefers.
+**Create the dashboard:** Reporting → Dashboards → Create dashboard → name "Aangan: Sales pipeline" → Private/Everyone as Nikhil prefers.
 
 For each report: Reporting → Reports → Create report → **Single object** (or Custom report builder where stated) → Deals.
 
@@ -13,7 +13,7 @@ For each report: Reporting → Reports → Create report → **Single object** (
 | 1 | Calls received | Number (KPI) | Count of deals. Filter: Create date = This month (add a date picker to the dashboard for flexibility). One deal = one lead; a dropped call + callback merge into one deal, so use "Calls received" below if you want raw call counts. |
 | 2 | % answered within 5 min | Number / donut | Donut chart of deals grouped by **Answered within 5 min** (Yes/No). The Yes slice % is the figure. |
 | 3 | Out-of-hours calls | Number (KPI) | Count of deals, filter **Out of hours** = Yes. |
-| 4 | Leads by stage | Funnel or bar | Deals grouped by **Deal stage**. Pipeline: Phone Enquiries. |
+| 4 | Leads by stage | Funnel or bar | Deals grouped by **Deal stage**. Pipeline: Sales pipeline. |
 | 5 | Consultations booked | Number (KPI) | Count of deals where **Deal stage** = Consultation booked, Won, or Lost-after-booking; simplest: stage = Consultation booked plus Won. |
 | 6 | Won revenue | Number (KPI) | Sum of **Amount**, filter Deal stage = Won, date = Close date. |
 | 7 | Total cost | Number (KPI) | Sum of **Cost of this call (INR)**, all deals in the pipeline. |

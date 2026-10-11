@@ -1,6 +1,6 @@
 {
   "name": "aangan-receptionist",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,7 +14,7 @@
     "viewer:add": "tsx scripts/add-viewer.ts",
     "agent:build": "tsx scripts/build-agent-prompt.ts",
     "agent:create": "tsx scripts/create-vaani-agent.ts",
-    "transcripts:extract": "tsx scripts/extract-transcripts.ts",
+    "transcripts:extract": "python3 scripts/extract_transcripts.py",
     "test:transcripts": "tsx scripts/test-transcripts.ts",
     "test:unit": "tsx scripts/test-unit.ts",
     "demo:seed": "tsx scripts/seed-demo.ts",
