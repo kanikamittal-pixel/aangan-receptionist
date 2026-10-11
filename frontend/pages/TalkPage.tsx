@@ -34,7 +34,8 @@ export default function Talk() {
       note(`session created after ${since()}`);
 
       // 3. Join the room and publish the already-running microphone straight away.
-      const rm = new Room();
+      // Vaani's LiveKit server has no single-peer-connection endpoint (/rtc/v1 returns 404); skip that mode so the client does not stall and reconnect every 15s.
+      const rm = new Room({ singlePeerConnection: false });
       room.current = rm;
       rm.on(RoomEvent.TrackSubscribed, (track, _pub, part) => {
         note(`audio from ${part.identity}`);
