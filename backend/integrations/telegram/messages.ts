@@ -67,10 +67,10 @@ export function renderComplaint(ex: Extraction, link: string, rec?: string) {
   ].filter((l) => l !== null).join("\n");
 }
 
-/** FYI only: a consultation is already booked. No buttons, nothing to do. */
+/** A consultation is already booked. Nothing to decide; the "Change time" button lets the designer move it. */
 export function renderBooked(ex: Extraction, link: string, when: string, host: string | null, meetingUrl: string | null, urgent?: Urgency, notes: string[] = [], rec?: string) {
   return [
-    `${urgent?.urgent ? "🔥 <b>URGENT · </b>" : ""}📅 <b>BOOKED</b> · no action needed`,
+    `${urgent?.urgent ? "🔥 <b>URGENT · </b>" : ""}📅 <b>BOOKED</b> · tap “Change time” if it does not suit you`,
     `<b>${esc(when)}</b>${host ? ` · with ${esc(host)}` : ""}`,
     `<b>${esc(ex.name ?? "Unknown caller")}</b>${phoneText(ex.phone, ex.email)}`,
     meetingUrl ? `🔗 ${esc(meetingUrl)}` : null,
@@ -82,4 +82,12 @@ export function renderBooked(ex: Extraction, link: string, when: string, host: s
     "",
     links(link, rec),
   ].filter((l) => l !== null).join("\n");
+}
+
+/** The same booked message after the designer moved the meeting. */
+export function renderRescheduled(text: string, when: string) {
+  const lines = text.split("\n");
+  lines[0] = lines[0].replace(/📅 <b>BOOKED<\/b>.*$/, "🔄 <b>TIME CHANGED</b> · tap “Change time” to move it again");
+  lines[1] = lines[1].replace(/^<b>[^<]*<\/b>/, `<b>${esc(when)}</b>`);
+  return lines.join("\n");
 }

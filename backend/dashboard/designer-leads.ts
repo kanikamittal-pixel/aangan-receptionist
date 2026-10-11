@@ -1,9 +1,11 @@
 import { q } from "@/backend/database/client";
 
-export type DashboardTab = "review" | "meetings" | "accepted" | "declined" | "notfit";
+export type DashboardTab = "urgent" | "review" | "meetings" | "accepted" | "declined" | "notfit";
 
 /** Which leads belong to each dashboard tab. */
+const URGENT_SQL = "l.decision <> 'rejected' and l.routing in ('qualified','unclear','complaint') and exists (select 1 from calls cu where cu.lead_id=l.id and cu.urgent)";
 const TAB_FILTER: Record<DashboardTab, string> = {
+  urgent: URGENT_SQL,
   review: "l.decision='pending'",
   meetings: "l.booking_time >= now() and coalesce(l.booking_status,'') <> 'canceled'",
   accepted: "l.decision='approved'",
@@ -13,7 +15,7 @@ const TAB_FILTER: Record<DashboardTab, string> = {
 
 /** How many leads sit in each tab (the numbers beside the tab names). */
 export async function countLeadsByTab(): Promise<Record<DashboardTab, number>> {
-  const [row] = await q("select count(*) filter (where decision='pending')::int review, count(*) filter (where booking_time >= now() and coalesce(booking_status,'') <> 'canceled')::int meetings, count(*) filter (where decision='approved')::int accepted, count(*) filter (where decision='rejected')::int declined, count(*) filter (where routing='not_a_fit')::int notfit from leads");
+  const [row] = await q(`select count(*) filter (where ${URGENT_SQL})::int urgent, count(*) filter (where decision='pending')::int review, count(*) filter (where booking_time >= now() and coalesce(booking_status,'') <> 'canceled')::int meetings, count(*) filter (where decision='approved')::int accepted, count(*) filter (where decision='rejected')::int declined, count(*) filter (where routing='not_a_fit')::int notfit from leads l`);
   return row;
 }
 
@@ -31,7 +33,7 @@ export async function listLeads(tab: DashboardTab, search: string) {
   }
   return q(
     `select l.*, coalesce(d.name, (select host_name from bookings where lead_id=l.id and status='booked' order by created_at desc limit 1)) designer_name, dd.name decided_name,
-            c.id call_id, c.external_id call_ext, c.started_at, c.extraction, c.final_criteria, c.overrides, c.confidence, c.out_of_hours, c.urgent, c.urgent_reason
+            c.id call_id, c.external_id call_ext, c.started_at, c.duration_sec, c.extraction, c.final_criteria, c.overrides, c.confidence, c.out_of_hours, c.urgent, c.urgent_reason
      from leads l
      join lateral (select * from calls where lead_id=l.id and extraction is not null order by started_at desc limit 1) c on true
      left join designers d on d.id=l.assigned_designer_id left join designers dd on dd.id=l.decided_by
@@ -52,11 +54,12 @@ export async function dashboardSummary() {
       count(*)::int total,
       count(*) filter (where last_call_at >= now() - interval '7 days')::int week,
       count(*) filter (where decision='pending')::int to_review,
+      count(*) filter (where ${URGENT_SQL})::int urgent,
       count(*) filter (where booking_time is not null and coalesce(booking_status,'') <> 'canceled')::int booked,
       count(*) filter (where decision='approved')::int taken,
       count(*) filter (where decision='rejected')::int passed,
       count(*) filter (where routing='not_a_fit')::int not_fit,
       count(*) filter (where routing in ('complaint','dropped','unclear') and decision is distinct from 'approved' and decision is distinct from 'rejected')::int other
-    from leads`);
-  return row as { total: number; week: number; to_review: number; booked: number; taken: number; passed: number; not_fit: number; other: number };
+    from leads l`);
+  return row as { urgent: number; total: number; week: number; to_review: number; booked: number; taken: number; passed: number; not_fit: number; other: number };
 }

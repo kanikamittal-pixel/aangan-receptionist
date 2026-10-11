@@ -122,7 +122,7 @@ async function postToTelegram(leadId: string, callId: string, ex: any, decision:
     if (!chat) throw new Error("Telegram chat id not configured");
     const text = renderBooked(ex, link0, when, booking.host_name, booking.meeting_url, urgency, decision.noted.map((k) => `${CRITERION_LABEL[k]} unclear: ${criteria[k].reason}`), recordingUrl(callId));
     const row = await q("insert into telegram_messages(lead_id, call_id, kind, chat_id, text, acted, action) values($1,$2,'booked',$3,$4,true,'auto_booked') returning id", [leadId, callId, chat, text]);
-    const sent = await sendMessage(chat, text);
+    const sent = await sendMessage(chat, text, [{ text: "🕐 Change time", callback_data: `rs:${row[0].id}` }]);
     await q("update telegram_messages set message_id=$2 where id=$1", [row[0].id, sent.message_id]);
     return;
   }

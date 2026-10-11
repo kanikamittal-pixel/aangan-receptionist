@@ -7,7 +7,7 @@ import LeadNotes from "@/frontend/components/LeadNotes";
 import Shell, { type NavItem } from "@/frontend/design-system/Shell";
 import Icon from "@/frontend/design-system/Icon";
 
-const TABS = [["review", "To review", "inbox"], ["meetings", "Upcoming meetings", "calendar"], ["accepted", "Taken", "check"], ["declined", "Passed", "xcircle"], ["notfit", "Not a fit", "ban"]] as const;
+const TABS = [["urgent", "Urgent", "flame"], ["review", "To review", "inbox"], ["meetings", "Upcoming meetings", "calendar"], ["accepted", "Taken", "check"], ["declined", "Passed", "xcircle"], ["notfit", "Not a fit", "ban"]] as const;
 const CRIT: [string, string][] = [["real_project", "Real project"], ["location", "In our area"], ["timeline", "Timeline"], ["budget", "Budget"], ["decision_maker", "Decision-maker"]];
 const MARK: Record<string, string> = { pass: "✓", fail: "✕", unclear: "?" };
 
@@ -47,6 +47,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
     else if (l.routing === "not_a_fit") out.push(["Not a fit", ""]);
     else out.push(["New lead", "green"]);
     if (l.contacted_at) out.push(["✓ Contacted", ""]);
+    else if (l.decision === "approved" && !(l.booking_time && l.booking_status !== "canceled") && Date.now() - new Date(l.decided_at ?? l.last_call_at).getTime() > 86_400_000) out.push(["Follow up", "amber"]);
     if (l.phone && !phoneLooksValid(l.phone)) out.push(["Check phone", "red"]);
     return out;
   };
@@ -57,7 +58,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
       <div className="ds-summary">
         <div className="ds-summary-head"><b>{sum.total}</b> enquiries so far · <b>{sum.week}</b> in the last 7 days</div>
         <div className="ds-summary-tiles">
-          {([["Need your review", sum.to_review, "review", "red"], ["Consultations booked", sum.booked, "meetings", "green"], ["Taken", sum.taken, "accepted", ""], ["Passed", sum.passed, "declined", ""], ["Not a fit", sum.not_fit, "notfit", ""]] as [string, number, string, string][]).map(([label, n, k, c]) => (
+          {([["Urgent", sum.urgent, "urgent", "red"], ["Need your review", sum.to_review, "review", ""], ["Consultations booked", sum.booked, "meetings", "green"], ["Taken", sum.taken, "accepted", ""], ["Passed", sum.passed, "declined", ""], ["Not a fit", sum.not_fit, "notfit", ""]] as [string, number, string, string][]).map(([label, n, k, c]) => (
             <a key={k} href={`/designer?t=${t}&tab=${k}`} className={`ds-tile ${c} ${n > 0 && c === "red" ? "hot" : ""}`}><b>{n}</b><span>{label}</span></a>
           ))}
         </div>
@@ -102,7 +103,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
             ["Budget said", ex.volunteered_budget ?? "Not mentioned"],
             ["Decision-maker", ({ on_call: "On the call", represented: "Represented", unclear: "Not clear", no: "No" } as any)[ex.decision_maker] ?? "—"],
             ["Heard of us via", ex.referral_source ?? "—"],
+            ["Call length", l.duration_sec ? `${Math.floor(l.duration_sec / 60)} min ${l.duration_sec % 60} s` : "—"],
           ];
+          // What to ask first, from Nikhil's rubric (knowledge/qualified.md): one direct question for each unclear criterion 1-3.
+          const ASK: Record<string, string> = {
+            real_project: "Do you want us to design and carry out the work, or only advice on your ideas?",
+            location: "Which area is the property in: Pune city or PCMC?",
+            timeline: "When would you need the project complete?",
+          };
+          const toAsk = Object.entries(ASK).filter(([k]) => crit[k]?.result === "unclear");
+          const unsure = ["budget", "decision_maker"].filter((k) => crit[k]?.result === "unclear");
           const confirmText = `Hi ${l.name ?? ""}, your consultation with Aangan Studio is booked for ${booked ? fmtDateTime(l.booking_time) : ""}.${l.meeting_url ? " Join here: " + l.meeting_url : ""}`;
           const linkText = `Hi ${l.name ?? ""}, thanks for your enquiry with Aangan Studio. Please choose a time for your free consultation here: ${link}`;
           const state = l.decision === "pending" ? "pending" : l.decision === "approved" ? "taken" : l.decision === "rejected" ? "passed" : "screened";
@@ -132,6 +142,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
 
                   <p className="ds-kicker" style={{ marginBottom: 10 }}>Summary</p>
                   <p className="ds-summary">{ex.handoff_summary}</p>
+
+                  <hr className="ds-dashed" />
+                  <p className="ds-kicker" style={{ marginBottom: 10 }}>Before you call</p>
+                  <ul className="ds-tips">
+                    {toAsk.map(([k, text]) => <li key={k}><b>Ask first ({CRIT.find(([c]) => c === k)![1].toLowerCase()} was unclear):</b> “{text}”</li>)}
+                    {unsure.length > 0 && <li><b>Don't push on {unsure.map((k) => (k === "budget" ? "budget" : "who decides")).join(" or ")}.</b> The studio treats it as qualified and you check it at the consultation.</li>}
+                    <li><b>Do not quote prices.</b> Cost depends on site condition, custom furniture, materials and timeline, and is discussed at the consultation.</li>
+                    <li><b>Typical timing:</b> design 3–4 weeks, then execution 8–16 weeks. Work cannot start for a deadline under 6 weeks away.</li>
+                    {String(ex.project_category ?? "").startsWith("commercial") && <li><b>Commercial:</b> we take up to about 3,000 sq ft, no retail or hospitality.</li>}
+                  </ul>
 
                   <hr className="ds-dashed" />
                   <p className="ds-kicker" style={{ marginBottom: 14 }}>Contact and project</p>

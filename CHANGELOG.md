@@ -12,3 +12,9 @@ First complete release.
 - Neon Postgres log with per-call cost in rupees.
 - Frontend and backend separated; backend grouped by connection.
 - 44 unit checks and 20 transcript tests (T01-T20).
+
+## Unreleased
+
+- Telegram: booked messages have a "Change time" button (pick a day, then a time; the meeting moves in Cal.com and the customer is emailed).
+- Dashboard: Urgent tab and tile, "Before you call" guidance from the studio rubric, call length, "Follow up" flag for taken leads not yet contacted.
+- Instructor link is now a full demo designer (can take or pass leads).

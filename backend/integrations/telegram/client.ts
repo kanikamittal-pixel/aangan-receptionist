@@ -23,6 +23,9 @@ export const editMessage = (chat_id: string | number, message_id: number, text: 
     reply_markup: { inline_keyboard: buttons ? [buttons] : [] },
   }).catch((e) => { if (!/not modified/i.test(String(e))) throw e; });
 
+export const setKeyboard = (chat_id: string | number, message_id: number, rows: Button[][]) =>
+  tg("editMessageReplyMarkup", { chat_id, message_id, reply_markup: { inline_keyboard: rows } }).catch((e) => { if (!/not modified/i.test(String(e))) throw e; });
+
 export const answerCallback = (id: string, text?: string, alert = false) =>
   tg("answerCallbackQuery", { callback_query_id: id, text, show_alert: alert }).catch(() => {});
 

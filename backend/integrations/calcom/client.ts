@@ -36,6 +36,15 @@ export async function cancelCalBooking(key: string, uid: string, reason: string)
   return calcom(key, "2026-02-25", `/bookings/${uid}/cancel`, { method: "POST", body: JSON.stringify({ cancellationReason: reason }) });
 }
 
+/** Move a booking to a new start time. Cal.com emails the attendee. Returns the new booking uid. */
+export async function rescheduleCalBooking(key: string, uid: string, start: string, rescheduledBy: string | null, reason: string) {
+  const r = await calcom<{ data: { uid: string; start: string } }>(key, "2026-02-25", `/bookings/${uid}/reschedule`, {
+    method: "POST",
+    body: JSON.stringify({ start, reschedulingReason: reason, ...(rescheduledBy ? { rescheduledBy } : {}) }),
+  });
+  return { uid: r.data.uid, start: r.data.start };
+}
+
 /** x-cal-signature-256 = hex(HMAC_SHA256(secret, rawBody)) */
 export function verifyCalWebhook(header: string | null, raw: string, secret: string) {
   if (!header || !secret) return false;
