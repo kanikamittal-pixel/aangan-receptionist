@@ -4,7 +4,7 @@
 
 First complete release.
 
-- Vaani voice agent (English/Hindi/Marathi) with in-call booking on Cal.com.
+- Vaani voice agent (English; Hindi in progress) with in-call booking on Cal.com.
 - Post-call webhook, Gemini extraction, code-based hard checks, routing.
 - Telegram alerts for urgent, booked and new qualified leads.
 - HubSpot contact and deal sync in a single "Sales pipeline" (INR).

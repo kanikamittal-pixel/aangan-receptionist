@@ -79,7 +79,7 @@ export default function Talk() {
         <div className="ds-talkcard">
           <p className="ds-kicker" style={{ textAlign: "center" }}>Voice assistant</p>
           <h1>Talk to us</h1>
-          <p className="ds-talk-sub">Ask about interior design, tell us about your home, and book a free consultation, all by voice. Speak in English, Hindi or Marathi. Calls are recorded.</p>
+          <p className="ds-talk-sub">Ask about interior design, tell us about your home, and book a free consultation, all by voice. Please speak in English. Calls are recorded.</p>
 
           {(state === "idle" || state === "ended" || state === "error") && (
             <button className="ds-btn ds-btn-dark" onClick={start}>{state === "idle" ? "🎙  Start call" : "🎙  Start a new call"}</button>
