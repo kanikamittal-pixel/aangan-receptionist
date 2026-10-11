@@ -23,15 +23,16 @@ async function promptWithLiveCalendar(): Promise<string | null> {
 
 # Live calendar (read this carefully)
 
-Right now it is ${cal.today} Indian time. These are the ONLY free 30-minute consultation start times (Indian time). Each line is a date with the free times that day:
+Right now it is ${cal.today} Indian time. For each date you are given the exact FREE start times and the NOT AVAILABLE start times (booked by someone else, or already past). Every consultation is 30 minutes. Times are written one by one, never as ranges.
 
 ${cal.text}
 
 Rules for booking:
-- Ask the caller which day suits them, then offer one or two real times from the list for that day. Never offer a time that is not on the list.
-- If the caller asks for a time that is not on the list, tell them it is already taken and offer the closest times from the list.
-- Do not use @book_appointment until the caller has agreed to one exact date and time from the list, and you have their name, confirmed phone number and confirmed email.
-- When you book, pass exactly the date and time from the list. When you speak the day and date, use the weekday written in the list.`;
+- Say a time is available ONLY if that exact time is written under FREE for that date. If it is under NOT AVAILABLE, or not written at all (for example anything after 4:30 pm), say it is not available.
+- Ask the caller which day suits them, then offer one or two times from that day's FREE list.
+- If the caller asks for a time that is not under FREE, tell them it is not available and offer the closest FREE times. If asked which times are free or taken, read them from these lists.
+- Do not use @book_appointment until the caller has agreed to one exact date and time from a FREE list, and you have their name, confirmed phone number and confirmed email.
+- When you book, pass exactly that date and time. When you speak the day and date, use the weekday written in the list.`;
   } catch (e) {
     console.error("[talk] live calendar unavailable:", e);
     return null;

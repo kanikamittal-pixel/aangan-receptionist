@@ -63,28 +63,32 @@ export async function registerCalWebhook(key: string, url: string, secret: strin
 }
 
 const IST = "Asia/Kolkata";
+const GRID = [...Array(16)].map((_, i) => 9 * 60 + i * 30); // consultation start times: 9:00 am to 4:30 pm, in minutes after midnight
 
 /**
- * The designer's free consultation times as plain text for the voice agent, e.g.
- * "Mon 12 Oct 2026: 9:00 am to 4:00 pm, 4:30 pm". Weekdays are computed here so the agent never has to work them out.
+ * Pure: turn Cal.com's free start times into plain text for the voice agent. For each day the agent gets the exact free times AND the
+ * times that are not available (already booked or already past), as single times, never ranges, so it cannot misread them.
  */
-export async function freeSlotsForAgent(key: string, eventTypeId: number, days = 10): Promise<{ today: string; text: string } | null> {
-  const slots = await findCalSlots(key, eventTypeId, new Date(Date.now() + 30 * 60_000), days, 500);
-  const fmt = (iso: string, o: Intl.DateTimeFormatOptions) => new Date(iso).toLocaleString("en-IN", { timeZone: IST, ...o });
-  const byDay = new Map<string, string[]>();
-  for (const s of slots) {
-    const d = fmt(s, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-    byDay.set(d, [...(byDay.get(d) ?? []), s]);
+export function formatSlotsForAgent(slots: string[], now = new Date(), days = 10): { today: string; text: string } | null {
+  const part = (d: Date, o: Intl.DateTimeFormatOptions) => d.toLocaleString("en-IN", { timeZone: IST, ...o });
+  const dayKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: IST });
+  const minutes = (d: Date) => { const [h, m] = part(d, { hour: "2-digit", minute: "2-digit", hour12: false }).split(":").map(Number); return (h % 24) * 60 + m; };
+  const clock = (m: number) => `${((Math.floor(m / 60) + 11) % 12) + 1}:${String(m % 60).padStart(2, "0")} ${m < 720 ? "am" : "pm"}`;
+  const free = new Map<string, Set<number>>();
+  for (const s of slots) { const d = new Date(s); free.set(dayKey(d), (free.get(dayKey(d)) ?? new Set()).add(minutes(d))); }
+  const lines: string[] = [];
+  for (let i = 0; i < days; i++) {
+    const day = new Date(now.getTime() + i * 86_400_000), key = dayKey(day), ok = free.get(key) ?? new Set<number>();
+    const label = part(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const freeTimes = GRID.filter((m) => ok.has(m)).map(clock), taken = GRID.filter((m) => !ok.has(m)).map(clock);
+    lines.push(`${label}\n  FREE: ${freeTimes.join(", ") || "none"}\n  NOT AVAILABLE: ${taken.join(", ") || "none"}`);
   }
-  const clock = (iso: string) => fmt(iso, { hour: "numeric", minute: "2-digit", hour12: true });
-  const lines = [...byDay].map(([day, list]) => {
-    const runs: string[][] = [];
-    for (const s of list) {
-      const last = runs[runs.length - 1];
-      if (last && +new Date(s) - +new Date(last[last.length - 1]) === 30 * 60_000) last.push(s); else runs.push([s]);
-    }
-    return `${day}: ${runs.map((r) => (r.length === 1 ? clock(r[0]) : `${clock(r[0])} to ${clock(r[r.length - 1])}`)).join(", ")}`;
-  });
-  if (!lines.length) return null;
-  return { today: fmt(new Date().toISOString(), { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }), text: lines.join("\n") };
+  if (!free.size) return null;
+  return { today: part(now, { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }), text: lines.join("\n") };
+}
+
+/** The designer's free consultation times as text for the voice agent (see formatSlotsForAgent). */
+export async function freeSlotsForAgent(key: string, eventTypeId: number, days = 10) {
+  const now = new Date();
+  return formatSlotsForAgent(await findCalSlots(key, eventTypeId, new Date(now.getTime() + 30 * 60_000), days, 500), now, days);
 }

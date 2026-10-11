@@ -74,6 +74,16 @@ t("telegram: lead says 'action needed' and asks the question", (() => { const m 
 t("telegram: urgent lead is marked URGENT first", renderLead(base(), qd, base().criteria, "https://x", "qualified", undefined, { urgent: true, reason: "r" }).startsWith("🔥"));
 t("telegram: booked message offers to change the time", renderBooked(base(), "https://x", "Mon 11am", "Aarav", null).includes("Change time"));
 t("telegram: complaint tells the front desk to call back", renderComplaint(base({ call_type: "complaint", complaint: { project_details: "p", summary: "s" } }), "https://x").includes("CALL THIS CLIENT BACK"));
+import { formatSlotsForAgent } from "../backend/integrations/calcom/client";
+{
+  // Monday 12 Oct 2026, 9:00 to 4:00 pm free; 4:30 pm is booked (07:00Z + ... = IST). 4:30 pm IST = 11:00Z.
+  const slots = [...Array(14)].map((_, i) => new Date(Date.UTC(2026, 9, 12, 3, 30 + i * 30)).toISOString()); // 9:00 am .. 3:30 pm IST
+  const r = formatSlotsForAgent([...slots, "2026-10-12T10:30:00.000Z"], new Date("2026-10-11T04:00:00Z"), 3)!;
+  const mon = r.text.split("\n").slice(3, 6).join("|");
+  t("agent slots: weekday is correct (12 Oct 2026 is a Monday)", mon.startsWith("Monday, 12 October 2026"));
+  t("agent slots: 4:00 pm is free, 4:30 pm is not available", /FREE:.*4:00 pm/.test(mon) && /NOT AVAILABLE:.*4:30 pm/.test(mon) && !/FREE:[^|]*4:30 pm/.test(mon));
+  t("agent slots: no ranges are used", !/ to \d/.test(r.text));
+}
 import { phoneLooksValid } from "../backend/shared/util";
 {
   const moved = renderRescheduled(renderBooked(base(), "https://x", "Mon 11am", "Aarav", null), "Tue 3pm");
