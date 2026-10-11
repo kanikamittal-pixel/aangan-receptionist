@@ -20,11 +20,8 @@ export default function Talk() {
     setState("connecting"); setMsg(""); setLog([]); setUnstable(false); drops.current = 0; t0.current = Date.now(); lastUserSpeech.current = 0; agentWasSpeaking.current = false;
     const since = () => `${((Date.now() - t0.current) / 1000).toFixed(1)}s`;
     try {
-      // 1. Microphone FIRST (permission prompt + device start-up), so the caller is ready before the agent greets.
-      const { Room, RoomEvent, Track, DisconnectReason, createLocalAudioTrack, ConnectionState } = await import("livekit-client");
-      note("asking for microphone…");
-      const micTrack = await createLocalAudioTrack({ echoCancellation: true, noiseSuppression: true, autoGainControl: true });
-      note(`microphone ready after ${since()}`);
+      // Same browser-side setup as Vaani's own test page (livekit-client 2.17.2, same Room options, microphone switched on when the room connects).
+      const { Room, RoomEvent, Track, DisconnectReason } = await import("livekit-client");
 
       // 2. Create the Vaani session and exchange it for room credentials.
       const r = await fetch("/api/talk/session" + (location.search.includes("old") ? "?old=1" : ""), { method: "POST" });
@@ -33,15 +30,18 @@ export default function Talk() {
       token.current = j.session_token ?? "";
       note(`session created after ${since()}`);
 
-      // 3. Join the room and publish the already-running microphone straight away.
-      // Vaani's LiveKit server has no single-peer-connection endpoint (/rtc/v1 returns 404); skip that mode so the client does not stall and reconnect every 15s.
-      const rm = new Room({ singlePeerConnection: false });
+      // 3. Join the room; the microphone is enabled as soon as the room is connected.
+      const rm = new Room({ adaptiveStream: true, dynacast: true });
       room.current = rm;
       rm.on(RoomEvent.TrackSubscribed, (track, _pub, part) => {
         note(`audio from ${part.identity}`);
         if (track.kind === Track.Kind.Audio) { const el = track.attach(); el.style.display = "none"; document.body.appendChild(el); }
       });
-      rm.on(RoomEvent.Disconnected, (reason) => { note(`DISCONNECTED: ${reason !== undefined ? DisconnectReason[reason] ?? reason : "unknown"}`); setState("ended"); micTrack.stop(); document.querySelectorAll("audio").forEach((a) => a.remove()); });
+      rm.on(RoomEvent.Disconnected, (reason) => { note(`DISCONNECTED: ${reason !== undefined ? DisconnectReason[reason] ?? reason : "unknown"}`); setState("ended"); document.querySelectorAll("audio").forEach((a) => a.remove()); });
+      rm.on(RoomEvent.Connected, () => {
+        note(`joined room after ${since()}`);
+        rm.localParticipant.setMicrophoneEnabled(true).then(() => { note(`microphone on (total ${since()})`); setState("live"); }).catch((e: any) => { setState("error"); setMsg(/permission|denied|NotAllowed/i.test(String(e?.message ?? e)) ? "Please allow microphone access in your browser, then try again." : String(e?.message ?? e)); try { rm.disconnect(); } catch {} });
+      });
       rm.on(RoomEvent.ParticipantConnected, (p) => note(`joined: ${p.identity} (${p.kind})`));
       rm.on(RoomEvent.ParticipantDisconnected, (p) => note(`LEFT: ${p.identity}`));
       rm.on(RoomEvent.ConnectionStateChanged, (st: any) => note(`connection: ${st}`));
@@ -57,13 +57,6 @@ export default function Talk() {
         agentWasSpeaking.current = agent;
       });
       await rm.connect(j.lk_url, j.lk_token);
-      note(`joined room after ${since()}`);
-      const t1 = Date.now();
-      await rm.localParticipant.publishTrack(micTrack);
-      const publishSecs = (Date.now() - t1) / 1000;
-      note(`microphone published in ${publishSecs.toFixed(1)}s (total ${since()})`);
-      if (publishSecs > 8) setUnstable(true);
-      setState("live");
     } catch (e: any) {
       setState("error");
       setMsg(/permission|denied|NotAllowed/i.test(String(e?.message ?? e)) ? "Please allow microphone access in your browser, then try again." : String(e?.message ?? e));
