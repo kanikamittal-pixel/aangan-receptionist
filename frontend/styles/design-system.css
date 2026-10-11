@@ -146,3 +146,5 @@ html:has(.ds-root) { background-color: #F9F9FB; }
 .ds-root .ds-tile.hot b, .ds-root .ds-tile.hot span { color: #fff; }
 .ds-root .ds-summary-foot { margin-top: 10px; font-size: 12px; color: #6b5a5e; }
 @media (max-width: 700px) { .ds-root .ds-summary-tiles { grid-template-columns: repeat(2, 1fr); } }
+
+.ds-root .ds-talk-warn { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: #fffbeb; border: 1px solid #f5d98b; color: #7a5200; font-size: 13px; line-height: 1.5; text-align: left; }

@@ -6,6 +6,8 @@ type State = "idle" | "connecting" | "live" | "ended" | "error";
 export default function Talk() {
   const [state, setState] = useState<State>("idle");
   const [msg, setMsg] = useState("");
+  const [unstable, setUnstable] = useState(false);
+  const drops = useRef(0);
   const [log, setLog] = useState<string[]>([]);
   const note = (t: string) => setLog((l) => [...l.slice(-14), `${new Date().toLocaleTimeString()}  ${t}`]);
   const room = useRef<any>(null);
@@ -15,7 +17,7 @@ export default function Talk() {
   const t0 = useRef<number>(0);
 
   async function start() {
-    setState("connecting"); setMsg(""); setLog([]); t0.current = Date.now(); lastUserSpeech.current = 0; agentWasSpeaking.current = false;
+    setState("connecting"); setMsg(""); setLog([]); setUnstable(false); drops.current = 0; t0.current = Date.now(); lastUserSpeech.current = 0; agentWasSpeaking.current = false;
     const since = () => `${((Date.now() - t0.current) / 1000).toFixed(1)}s`;
     try {
       // 1. Microphone FIRST (permission prompt + device start-up), so the caller is ready before the agent greets.
@@ -42,7 +44,7 @@ export default function Talk() {
       rm.on(RoomEvent.ParticipantConnected, (p) => note(`joined: ${p.identity} (${p.kind})`));
       rm.on(RoomEvent.ParticipantDisconnected, (p) => note(`LEFT: ${p.identity}`));
       rm.on(RoomEvent.ConnectionStateChanged, (st: any) => note(`connection: ${st}`));
-      rm.on(RoomEvent.Reconnecting, () => note("reconnecting…"));
+      rm.on(RoomEvent.Reconnecting, () => { note("reconnecting…"); drops.current += 1; if (drops.current >= 2) setUnstable(true); });
       rm.on(RoomEvent.Reconnected, () => note("reconnected"));
       rm.on(RoomEvent.ActiveSpeakersChanged, (sp) => {
         const now = Date.now();
@@ -57,7 +59,9 @@ export default function Talk() {
       note(`joined room after ${since()}`);
       const t1 = Date.now();
       await rm.localParticipant.publishTrack(micTrack);
-      note(`microphone published in ${((Date.now() - t1) / 1000).toFixed(1)}s (total ${since()})`);
+      const publishSecs = (Date.now() - t1) / 1000;
+      note(`microphone published in ${publishSecs.toFixed(1)}s (total ${since()})`);
+      if (publishSecs > 8) setUnstable(true);
       setState("live");
     } catch (e: any) {
       setState("error");
@@ -88,6 +92,7 @@ export default function Talk() {
           {state === "live" && (<><p className="ds-talk-status live"><i /> Connected. Go ahead and speak.</p><button className="ds-btn ds-btn-red" onClick={end}>End call</button></>)}
           {state === "ended" && <p className="ds-talk-status">Call ended. Thank you!</p>}
           {state === "error" && <p className="ds-talk-status err">{msg}</p>}
+          {unstable && <p className="ds-talk-warn">Your internet connection looks unstable, so the assistant may not hear you or the call may drop. Try another network (for example a phone hotspot), turn off any VPN, and start a new call.</p>}
 
           <div className="ds-try">
             <p className="ds-kicker">What to try</p>
