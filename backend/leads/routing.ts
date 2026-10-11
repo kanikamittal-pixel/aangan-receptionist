@@ -2,7 +2,7 @@ import type { Settings } from "@/backend/config/defaults";
 import type { Extraction, CriterionKey } from "@/backend/integrations/gemini/extract";
 import { failedCriteria, unclearCriteria, type Criteria } from "@/backend/leads/hard-checks";
 
-export type Route = "qualified" | "unclear" | "complaint" | "not_a_fit" | "dropped";
+type Route = "qualified" | "unclear" | "complaint" | "not_a_fit" | "dropped";
 
 export type Decision = {
   route: Route;

@@ -23,7 +23,7 @@ export type NormalizedInteraction = {
 const pick = (o: any, ...keys: string[]) => { for (const k of keys) { const v = k.split(".").reduce((a, p) => a?.[p], o); if (v != null && v !== "") return v; } return null; };
 
 /** "[13:33:14] AGENT: hi\n\n[13:33:19] USER: yes" -> "Front Desk: hi\nCaller: yes" (labels the extraction prompt expects) */
-export function normalizeTranscript(t: string): string {
+function normalizeTranscript(t: string): string {
   return t
     .replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]\s*/g, "")
     .replace(/^\s*AGENT:/gim, "Front Desk:")

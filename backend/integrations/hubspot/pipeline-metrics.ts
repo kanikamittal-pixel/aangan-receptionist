@@ -6,7 +6,7 @@ export type Deal = { id: string; props: Record<string, string | null> };
 
 const PROPS = ["dealname", "dealstage", "amount", "createdate", "closedate", "call_time", "answered_within_5_min", "out_of_hours", "routing_decision", "assigned_designer", "call_cost_inr", "transcript_link", "confidence", "consultation_time"];
 
-export async function fetchDeals(pipelineId: string): Promise<Deal[]> {
+async function fetchDeals(pipelineId: string): Promise<Deal[]> {
   const out: Deal[] = [];
   let after: string | undefined;
   for (let i = 0; i < 20; i++) { // up to 2,000 deals

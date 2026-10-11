@@ -2,7 +2,7 @@ import { esc } from "@/backend/shared/util";
 
 const api = (method: string) => `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/${method}`;
 
-export async function tg<T = any>(method: string, body: Record<string, unknown>): Promise<T> {
+async function tg<T = any>(method: string, body: Record<string, unknown>): Promise<T> {
   const res = await fetch(api(method), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const j: any = await res.json();
   if (!j.ok) throw new Error(`Telegram ${method}: ${j.description}`);

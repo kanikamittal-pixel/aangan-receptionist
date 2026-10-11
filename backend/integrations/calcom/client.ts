@@ -61,3 +61,30 @@ export async function registerCalWebhook(key: string, url: string, secret: strin
     throw e;
   }
 }
+
+const IST = "Asia/Kolkata";
+
+/**
+ * The designer's free consultation times as plain text for the voice agent, e.g.
+ * "Mon 12 Oct 2026: 9:00 am to 4:00 pm, 4:30 pm". Weekdays are computed here so the agent never has to work them out.
+ */
+export async function freeSlotsForAgent(key: string, eventTypeId: number, days = 10): Promise<{ today: string; text: string } | null> {
+  const slots = await findCalSlots(key, eventTypeId, new Date(Date.now() + 30 * 60_000), days, 500);
+  const fmt = (iso: string, o: Intl.DateTimeFormatOptions) => new Date(iso).toLocaleString("en-IN", { timeZone: IST, ...o });
+  const byDay = new Map<string, string[]>();
+  for (const s of slots) {
+    const d = fmt(s, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+    byDay.set(d, [...(byDay.get(d) ?? []), s]);
+  }
+  const clock = (iso: string) => fmt(iso, { hour: "numeric", minute: "2-digit", hour12: true });
+  const lines = [...byDay].map(([day, list]) => {
+    const runs: string[][] = [];
+    for (const s of list) {
+      const last = runs[runs.length - 1];
+      if (last && +new Date(s) - +new Date(last[last.length - 1]) === 30 * 60_000) last.push(s); else runs.push([s]);
+    }
+    return `${day}: ${runs.map((r) => (r.length === 1 ? clock(r[0]) : `${clock(r[0])} to ${clock(r[r.length - 1])}`)).join(", ")}`;
+  });
+  if (!lines.length) return null;
+  return { today: fmt(new Date().toISOString(), { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }), text: lines.join("\n") };
+}

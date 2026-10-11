@@ -29,7 +29,7 @@ export async function loadConfig(): Promise<Loaded> {
   return value;
 }
 
-export function clearConfigCache() { cache = null; }
+function clearConfigCache() { cache = null; }
 
 export async function getConfigValue<T = any>(key: string): Promise<T | null> {
   const r = await q("select value from app_config where key=$1", [key]);

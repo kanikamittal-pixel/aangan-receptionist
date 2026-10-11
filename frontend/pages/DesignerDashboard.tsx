@@ -20,7 +20,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
   const { t, tab: tabParam, lead: leadParam, q: qParam } = await searchParams;
   const designer: any = await designerFromToken(t);
   if (!designer) return <main style={{ padding: 32, fontFamily: "system-ui" }}><p>This link isn't valid. Ask the studio for your dashboard link.</p></main>;
-  const readOnly = !!designer.read_only;
   const tab = TABS.some(([k]) => k === tabParam) ? tabParam! : "review";
   const search = (qParam ?? "").trim().slice(0, 60);
 
@@ -53,7 +52,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
   };
 
   return (
-    <Shell section="Leads" nav={nav} extra={extra} userName={designer.name} title="Leads" subtitle={readOnly ? "View-only access" : "Enquiries handled by the voice assistant"}
+    <Shell section="Leads" nav={nav} extra={extra} userName={designer.name} title="Leads" subtitle="Enquiries handled by the voice assistant"
       bellHref={`/designer?t=${t}&tab=review`} bellCount={counts.review} search={{ action: "/designer", hidden: { t: t!, tab }, value: search, placeholder: "Search name, phone, area…" }}>
       <div className="ds-summary">
         <div className="ds-summary-head"><b>{sum.total}</b> enquiries so far · <b>{sum.week}</b> in the last 7 days</div>
@@ -122,7 +121,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
             <>
               <section className="ds-detail">
                 <a className="ds-back" href={base}><Icon name="back" size={18} /> All leads</a>
-                {readOnly && <p className="ds-warn">View-only access: you can look at everything but not change anything.</p>}
                 {l.phone && !phoneOk && (
                   <p className="ds-warn red">⚠️ <b>The phone number looks incomplete</b> ({l.phone}). {email ? <>Please use the customer's email instead: <b>{email}</b>. You can still send them the booking link by email below.</> : "No email was captured either, so check the call recording for the number."}</p>
                 )}
@@ -181,10 +179,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
                     <div className="ds-action-icon"><Icon name={state === "pending" ? "inbox" : state === "taken" ? "check" : state === "passed" ? "xcircle" : "ban"} size={28} /></div>
                     <div>
                       <h3>{state === "pending" ? "Needs your decision" : state === "taken" ? (booked ? "Meeting booked" : "You took this lead") : state === "passed" ? "Passed" : "Not a fit"}</h3>
-                      <p>{state === "pending" ? (readOnly ? "Waiting for a designer." : "Take it or pass.") : state === "taken" ? (l.booked_by === "vaani" ? "Booked by Vaani during the call." : l.booked_by === "customer" ? "Booked by the customer." : `Taken by ${l.decided_name ?? "Vaani"}.`) : state === "passed" ? `By ${l.decided_name}${l.decision_note ? `: “${l.decision_note}”` : ""}` : "Screened out automatically. Not sent to designers."}</p>
+                      <p>{state === "pending" ? "Take it or pass." : state === "taken" ? (l.booked_by === "vaani" ? "Booked by Vaani during the call." : l.booked_by === "customer" ? "Booked by the customer." : `Taken by ${l.decided_name ?? "Vaani"}.`) : state === "passed" ? `By ${l.decided_name}${l.decision_note ? `: “${l.decision_note}”` : ""}` : "Screened out automatically. Not sent to designers."}</p>
                     </div>
                   </div>
-                  {state === "pending" && !readOnly && <LeadActions leadId={l.id} token={t!} />}
+                  {state === "pending" && <LeadActions leadId={l.id} token={t!} />}
                   {state === "taken" && booked && <p style={{ margin: 0, fontWeight: 700, fontSize: 18 }}>{fmtDateTime(l.booking_time)}<span style={{ display: "block", fontWeight: 500, fontSize: 13, color: "rgba(254,205,211,.85)" }}>with {l.designer_name ?? "the team"}</span></p>}
                 </div>
 
@@ -209,7 +207,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
 
                 <div className="ds-optcard">
                   <h4>Your notes</h4>
-                  <LeadNotes key={l.id} leadId={l.id} token={t!} note={l.designer_note ?? ""} contacted={!!l.contacted_at} readOnly={readOnly} />
+                  <LeadNotes key={l.id} leadId={l.id} token={t!} note={l.designer_note ?? ""} contacted={!!l.contacted_at} />
                 </div>
               </aside>
             </>

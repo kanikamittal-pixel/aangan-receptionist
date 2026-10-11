@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 /** The designer's private note on a lead, and a "contacted" flag. */
-export default function LeadNotes({ leadId, token, note, contacted, readOnly }: { leadId: string; token: string; note: string; contacted: boolean; readOnly: boolean }) {
+export default function LeadNotes({ leadId, token, note, contacted }: { leadId: string; token: string; note: string; contacted: boolean }) {
   const router = useRouter();
   const [text, setText] = useState(note);
   const [saved, setSaved] = useState("");
@@ -24,14 +24,12 @@ export default function LeadNotes({ leadId, token, note, contacted, readOnly }: 
 
   return (
     <div className="ds-notes">
-      <textarea value={text} onChange={(e) => { setText(e.target.value); setSaved(""); }} onBlur={() => !readOnly && text !== note && save()} placeholder={readOnly ? "No notes" : "Your private notes: what the customer said, what to do next…"} rows={4} disabled={readOnly} />
-      {!readOnly && (
-        <div className="ds-notes-row">
-          <button className={`ds-chipbtn ${isContacted ? "on" : ""}`} onClick={toggle}>{isContacted ? "✓ Contacted" : "Mark as contacted"}</button>
-          <button className="ds-chipbtn" onClick={save}>Save note</button>
-          <span className="ds-saved">{saved}</span>
-        </div>
-      )}
+      <textarea value={text} onChange={(e) => { setText(e.target.value); setSaved(""); }} onBlur={() => text !== note && save()} placeholder="Your private notes: what the customer said, what to do next…" rows={4} />
+      <div className="ds-notes-row">
+        <button className={`ds-chipbtn ${isContacted ? "on" : ""}`} onClick={toggle}>{isContacted ? "✓ Contacted" : "Mark as contacted"}</button>
+        <button className="ds-chipbtn" onClick={save}>Save note</button>
+        <span className="ds-saved">{saved}</span>
+      </div>
     </div>
   );
 }

@@ -170,4 +170,3 @@ alter table leads add column if not exists designer_note text;
 
 alter table leads add column if not exists contacted_at timestamptz;
 
-alter table designers add column if not exists read_only boolean not null default false;

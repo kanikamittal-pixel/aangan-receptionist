@@ -2,7 +2,7 @@ import type { Rules } from "@/backend/config/defaults";
 import { CRITERIA_KEYS, type CriterionKey, type Extraction } from "@/backend/integrations/gemini/extract";
 
 export type Criteria = Extraction["criteria"];
-export type Override = { criterion: CriterionKey; ai: string; code: "fail" | "pass"; reason: string };
+type Override = { criterion: CriterionKey; ai: string; code: "fail" | "pass"; reason: string };
 
 const norm = (s?: string | null) => (s ?? "").toLowerCase().replace(/[^a-z0-9 \-]/g, " ").replace(/\s+/g, " ").trim();
 const hasTerm = (hay: string, term: string) => new RegExp(`(^|[^a-z])${term.replace(/[-\s]/g, "[-\\s]")}([^a-z]|$)`).test(hay);
