@@ -141,8 +141,11 @@ html:has(.ds-root) { background-color: #F9F9FB; }
 .ds-root .ds-tile { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: #fdf6f7; text-decoration: none; color: inherit; }
 .ds-root .ds-tile b { font-size: 24px; line-height: 1.1; color: #4c0519; }
 .ds-root .ds-tile span { font-size: 12px; color: #6b5a5e; }
-.ds-root .ds-tile.hot { background: #4c0519; }
-.ds-root .ds-tile.hot b, .ds-root .ds-tile.hot span { color: #fff; }
+.ds-root .ds-tile { border: 2px solid transparent; }
+.ds-root .ds-tile.alert { background: #fff1f2; border-color: #fecdd3; }
+.ds-root .ds-tile.alert b { color: #be123c; }
+.ds-root .ds-tile.on { background: #4c0519; border-color: #4c0519; }
+.ds-root .ds-tile.on b, .ds-root .ds-tile.on span { color: #fff; }
 .ds-root .ds-summary-foot { margin-top: 10px; font-size: 12px; color: #6b5a5e; }
 @media (max-width: 700px) { .ds-root .ds-summary-tiles { grid-template-columns: repeat(2, 1fr); } }
 

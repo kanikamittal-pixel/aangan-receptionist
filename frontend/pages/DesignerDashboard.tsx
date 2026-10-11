@@ -58,7 +58,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
         <div className="ds-summary-head"><b>{sum.total}</b> enquiries so far · <b>{sum.week}</b> in the last 7 days</div>
         <div className="ds-summary-tiles">
           {([["Urgent", sum.urgent, "urgent", "red"], ["Need your review", sum.to_review, "review", ""], ["Consultations booked", sum.booked, "meetings", "green"], ["Taken", sum.taken, "accepted", ""], ["Passed", sum.passed, "declined", ""], ["Not a fit", sum.not_fit, "notfit", ""]] as [string, number, string, string][]).map(([label, n, k, c]) => (
-            <a key={k} href={`/designer?t=${t}&tab=${k}`} className={`ds-tile ${c} ${n > 0 && c === "red" ? "hot" : ""}`}><b>{n}</b><span>{label}</span></a>
+            <a key={k} href={`/designer?t=${t}&tab=${k}`} className={`ds-tile ${k === tab ? "on" : ""} ${c === "red" && n > 0 ? "alert" : ""}`} aria-current={k === tab ? "page" : undefined}><b>{n}</b><span>{label}</span></a>
           ))}
         </div>
         {sum.other > 0 && <div className="ds-summary-foot">Also: {sum.other} dropped, complaint or unclear {sum.other === 1 ? "call is" : "calls are"} waiting on the team.</div>}
