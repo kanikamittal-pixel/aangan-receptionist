@@ -92,7 +92,6 @@ html:has(.ds-root) { background-color: #F9F9FB; }
 .ds-bars { display: grid; gap: 14px; } .ds-bar { display: grid; grid-template-columns: 170px 1fr 36px; align-items: center; gap: 14px; font-size: 13px; font-weight: 600; color: #475569; }
 .ds-bar i { display: block; height: 12px; border-radius: 99px; background: linear-gradient(90deg, #4c0519, #be123c); min-width: 6px; } .ds-bar em { font-style: normal; text-align: right; color: #0f172a; }
 .ds-table { width: 100%; border-collapse: collapse; font-size: 13px; } .ds-table th { border-bottom: 0; text-align: left; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; padding: 0 0 12px; } .ds-table td { padding: 14px 0; border-bottom: 0; border-top: 1px solid #f1f5f9; color: #334155; font-weight: 500; }
-.ds-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; } .ds-pill { padding: 8px 16px; border-radius: 99px; background: #fff; border: 1px solid #e2e8f0; font-weight: 700; font-size: 13px; color: #475569; } .ds-pill.on { background: #4c0519; border-color: #4c0519; color: #fff; }
 
 @media (max-width: 1279px) { .ds-grid { grid-template-columns: 300px minmax(0, 1fr); } .ds-side { grid-column: 2; position: static; } }
 @media (max-width: 1023px) {
@@ -152,3 +151,8 @@ html:has(.ds-root) { background-color: #F9F9FB; }
 .ds-root .ds-tips { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.55; color: #4a3b3f; }
 .ds-root .ds-tips li { margin-bottom: 6px; }
 .ds-root .ds-tips b { color: #4c0519; }
+
+.ds-root .ds-reason-label { margin: 0 0 8px; font-size: 13px; color: rgba(254, 205, 211, .9); }
+.ds-root .ds-reasons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.ds-root .ds-reasons .ds-chipbtn { color: #fff; border-color: rgba(255, 255, 255, .35); background: transparent; }
+.ds-root .ds-reasons .ds-chipbtn.on { background: #fff; color: #4c0519; }

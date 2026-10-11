@@ -7,7 +7,7 @@ A voice assistant answers every enquiry for **Aangan Studio**, an interior desig
 ## How one call moves through the system
 
 1. **Call.** The caller talks to the Vaani voice agent on the web call page (`/talk`). The agent follows `agent/system-prompt.md`: it asks the 5 qualifying questions, confirms area, phone and email, and never quotes a price.
-2. **Booking.** For a qualified caller, Vaani books the chosen slot on the designer's **Cal.com** calendar while still on the call.
+2. **Booking.** When the call starts, the app reads the designer's real free times from **Cal.com** and gives them to the agent, so it only offers times that are free. For a qualified caller Vaani books the chosen slot while still on the call.
 3. **Webhook.** When the call ends, Vaani posts the transcript and recording to `/api/webhooks/vaani`.
 4. **Extraction.** **Gemini** reads the transcript and returns the lead's details, the 5 criteria with reasons, urgency and a handoff note.
 5. **Hard checks.** Plain code (not AI) checks the service area, project type, size and deadline. If code and AI disagree, code wins and the difference is logged.
@@ -32,10 +32,11 @@ The repository has three parts. The rule that keeps it easy to read: **the front
 
 | Connection | Code | What it does |
 |---|---|---|
-| **Telegram** | `backend/integrations/telegram/` and `backend/api/telegram-webhook.ts` | `client.ts` sends and edits messages; `messages.ts` builds the message layouts; `handlers.ts` handles the Take / Pass / Callback buttons. Only messages that need action are sent. |
+| **Telegram** | `backend/integrations/telegram/` and `backend/api/telegram-webhook.ts` | `client.ts` sends and edits messages; `messages.ts` builds the message layouts; `handlers.ts` handles the Take / Pass / Callback buttons and the "Change time" button on a booked meeting. Only messages that need action are sent. |
 | **HubSpot (Nikhil)** | `backend/integrations/hubspot/` and `frontend/pages/NikhilDashboard.tsx` | `sync-lead.ts` writes the contact, deal and timeline note; `pipeline-metrics.ts` reads the deals back for Nikhil's dashboard. `npm run hubspot:setup` creates the Sales pipeline and properties. |
-| **Cal.com** | `backend/integrations/calcom/` and `backend/api/calcom-webhook.ts` | Matches a booking made by Vaani to its call; builds the designer's booking link; handles cancelled and rescheduled bookings. |
+| **Cal.com** | `backend/integrations/calcom/` and `backend/api/calcom-webhook.ts` | Reads free times for the agent; matches a booking made by Vaani to its call; builds the designer's booking link; moves a meeting when the designer taps "Change time"; handles cancelled and rescheduled bookings. |
 | **Vaani** | `backend/integrations/vaani/` and `backend/api/vaani-webhook.ts` | The only code that knows Vaani's payload; turns it into a neutral call object so another channel could reuse the pipeline. |
+| **Web call page** | `frontend/pages/TalkPage.tsx` and `backend/api/talk-session.ts` | The browser call. The server starts the Vaani call (the API key never reaches the browser) and adds today's date and the free times to the agent's instructions. |
 | **Gemini** | `backend/integrations/gemini/extract.ts` | Transcript in, structured lead out, with fallback between models. |
 
 ### Lead logic and dashboards
@@ -66,11 +67,11 @@ npm run agent:build -- --booking && npm run agent:create   # publish the voice p
 npm run dev
 ```
 
-Secrets live only in environment variables (never in the code). Dashboard links carry a personal token; a designer can be given a **view-only** link (`npm run viewer:add`).
+Secrets live only in environment variables (never in the code). Each designer's dashboard link carries a personal token (`npm run designer:add`).
 
 ## Tests
 
-- `npm run test:unit`: 44 offline checks of the hard checks, routing, messages and metrics.
+- `npm run test:unit`: 45 offline checks of the hard checks, routing, messages and metrics.
 - `npm run test:transcripts`: runs the 20 sample calls through Gemini and the hard checks and compares each with the expected outcome (all 20 match), then does a dry run of Telegram and Cal.com.
 
 ## Versions and deployment

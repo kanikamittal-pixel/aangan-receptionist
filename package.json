@@ -11,7 +11,6 @@
     "hubspot:setup": "tsx scripts/setup-hubspot.ts",
     "webhooks:setup": "tsx scripts/setup-webhooks.ts",
     "designer:add": "tsx scripts/add-designer.ts",
-    "viewer:add": "tsx scripts/add-viewer.ts",
     "agent:build": "tsx scripts/build-agent-prompt.ts",
     "agent:create": "tsx scripts/create-vaani-agent.ts",
     "transcripts:extract": "python3 scripts/extract_transcripts.py",

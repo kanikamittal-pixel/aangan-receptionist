@@ -22,7 +22,7 @@ export type ApproveResult =
   | { ok: true; designerName: string; bookingLink: string | null };
 
 /** "Take it forward" / Approve. Atomic: the first designer to decide wins, from Telegram or the dashboard. */
-export async function approveLead(leadId: string, tapped: Designer, via: "telegram" | "dashboard"): Promise<ApproveResult> {
+export async function approveLead(leadId: string, tapped: Designer, via: "telegram" | "dashboard", opts: { skipHubspot?: boolean } = {}): Promise<ApproveResult> {
   const [lead] = await q("select * from leads where id=$1", [leadId]);
   if (!lead) return { ok: false, error: "not_found" };
   const all = await q<Designer>("select * from designers where active");
@@ -39,7 +39,7 @@ export async function approveLead(leadId: string, tapped: Designer, via: "telegr
   const link = bookingLinkFor(chosen, { id: leadId, name: lead.name }, ex?.email);
   await refreshTelegram(leadId, `✅ <b>Taken by ${esc(chosen.name)}</b> · ${stamp()}\n📞 Ask ${esc(lead.name ?? "the customer")}${lead.phone ? ` (${esc(lead.phone)})` : ""} for a preferred time${link ? `, or send the booking link:\n${esc(link)}` : "."}`);
   await logAction(leadId, "taken", tapped, `via ${via}`);
-  await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
+  if (!opts.skipHubspot) await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
   return { ok: true, designerName: chosen.name, bookingLink: link };
 }
 
@@ -61,7 +61,7 @@ async function cancelLeadBookings(leadId: string): Promise<string> {
 }
 
 /** Reject / Decline. `reason` null = Telegram flow, reason arrives in a follow-up reply. */
-export async function rejectLead(leadId: string, d: Designer, reason: string | null, via: "telegram" | "dashboard") {
+export async function rejectLead(leadId: string, d: Designer, reason: string | null, via: "telegram" | "dashboard", opts: { skipHubspot?: boolean } = {}) {
   const claimed = await q(
     "update leads set decision='rejected', decided_by=$2, decided_at=now(), decision_note=$3, status='lost', updated_at=now() where id=$1 and decision='pending' returning id",
     [leadId, d.id, reason],
@@ -71,7 +71,7 @@ export async function rejectLead(leadId: string, d: Designer, reason: string | n
   await logAction(leadId, reason ? "decline" : "decline_pending", d, reason ?? `via ${via}`);
   const cancelled = await cancelLeadBookings(leadId);
   await refreshTelegram(leadId, (reason ? `❌ <b>Passed by ${esc(d.name)}</b> · ${stamp()}\n“${esc(reason)}”` : `❌ <b>Passing</b> · ${esc(d.name)} · ${stamp()} (reason needed)`) + cancelled);
-  if (reason) await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
+  if (reason && !opts.skipHubspot) await syncLeadToHubspot(leadId).catch((e) => console.error("[hubspot]", e));
   return { ok: true as const };
 }
 

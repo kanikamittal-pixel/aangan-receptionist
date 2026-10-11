@@ -4,13 +4,13 @@ import type { Rules } from "@/backend/config/defaults";
 const Result = z.enum(["pass", "fail", "unclear"]);
 const Criterion = z.object({ result: Result, reason: z.string() });
 
-export const CATEGORIES = [
+const CATEGORIES = [
   "residential_full", "residential_partial", "residential_single_room", "commercial_office", "commercial_other",
   "restaurant", "hotel", "retail", "gym", "decor_only", "standalone_furniture", "vastu_only", "structural_only",
   "advice_only", "other",
 ] as const;
 
-export const ExtractionSchema = z.object({
+const ExtractionSchema = z.object({
   name: z.string().nullable(),
   phone: z.string().nullable(),
   email: z.string().nullable(),
@@ -43,7 +43,7 @@ export type CriterionKey = keyof Extraction["criteria"];
 
 export const CRITERIA_KEYS: CriterionKey[] = ["real_project", "location", "timeline", "budget", "decision_maker"];
 
-export function buildPrompt(transcript: string, callDate: Date, rules: Rules) {
+function buildPrompt(transcript: string, callDate: Date, rules: Rules) {
   const today = callDate.toISOString().slice(0, 10);
   return `You read a phone-call transcript between a caller and the studio's receptionist (voice agent or front desk) for Aangan Studio, an interior design studio in Pune. Return ONLY one JSON object, no prose.
 

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-export const TZ = "Asia/Kolkata";
+const TZ = "Asia/Kolkata";
 
 export function normalizePhone(raw?: string | null): string | null {
   if (!raw) return null;

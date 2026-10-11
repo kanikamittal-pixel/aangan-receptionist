@@ -1,7 +1,7 @@
 /** A row of the `designers` table (only the columns the app uses). */
 export type Designer = {
   id: number; name: string; telegram_user_id: number | null; email?: string | null;
-  booking_link?: string | null; cal_api_key?: string | null; read_only?: boolean;
+  booking_link?: string | null; cal_api_key?: string | null;
 };
 
 /**
