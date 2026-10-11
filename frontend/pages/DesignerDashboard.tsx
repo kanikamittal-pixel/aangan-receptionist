@@ -1,4 +1,4 @@
-import { countLeadsByTab, listLeads, type DashboardTab } from "@/backend/dashboard/designer-leads";
+import { countLeadsByTab, dashboardSummary, listLeads, type DashboardTab } from "@/backend/dashboard/designer-leads";
 import { designerFromToken } from "@/backend/leads/designer-auth";
 import { fmtDateTime, phoneLooksValid, recordingUrl, sign } from "@/backend/shared/util";
 import { bookingLinkFor } from "@/backend/integrations/calcom/booking-link";
@@ -25,6 +25,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
   const search = (qParam ?? "").trim().slice(0, 60);
 
   const counts = await countLeadsByTab();
+  const sum = await dashboardSummary();
   const leads = await listLeads(tab as DashboardTab, search);
   const sel: any = leads.find((l: any) => l.id === leadParam) ?? (leadParam ? null : leads[0]);
   const keep = search ? `&q=${encodeURIComponent(search)}` : "";
@@ -53,6 +54,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
   return (
     <Shell section="Leads" nav={nav} extra={extra} userName={designer.name} title="Leads" subtitle={readOnly ? "View-only access" : "Enquiries handled by the voice assistant"}
       bellHref={`/designer?t=${t}&tab=review`} bellCount={counts.review} search={{ action: "/designer", hidden: { t: t!, tab }, value: search, placeholder: "Search name, phone, area…" }}>
+      <div className="ds-summary">
+        <div className="ds-summary-head"><b>{sum.total}</b> enquiries so far · <b>{sum.week}</b> in the last 7 days</div>
+        <div className="ds-summary-tiles">
+          {([["Need your review", sum.to_review, "review", "red"], ["Consultations booked", sum.booked, "meetings", "green"], ["Taken", sum.taken, "accepted", ""], ["Passed", sum.passed, "declined", ""], ["Not a fit", sum.not_fit, "notfit", ""]] as [string, number, string, string][]).map(([label, n, k, c]) => (
+            <a key={k} href={`/designer?t=${t}&tab=${k}`} className={`ds-tile ${c} ${n > 0 && c === "red" ? "hot" : ""}`}><b>{n}</b><span>{label}</span></a>
+          ))}
+        </div>
+        {sum.other > 0 && <div className="ds-summary-foot">Also: {sum.other} dropped, complaint or unclear {sum.other === 1 ? "call is" : "calls are"} waiting on the team.</div>}
+      </div>
       <div className={`ds-grid ${leadParam ? "has-param" : ""}`}>
         <aside className="ds-list">
           {leads.length === 0 && (

@@ -133,3 +133,16 @@ html:has(.ds-root) { background-color: #F9F9FB; }
 .ds-try { text-align: left; background: #f8fafc; border-radius: 20px; padding: 20px 22px; margin-top: 28px; } .ds-try ul { margin: 10px 0 0 18px; padding: 0; color: #475569; font-size: 14px; line-height: 1.8; }
 .ds-try-note { font-size: 12px; color: #94a3b8; margin: 12px 0 0; }
 .ds-techlog { text-align: left; margin-top: 20px; font-size: 12px; color: #94a3b8; } .ds-techlog pre { white-space: pre-wrap; margin: 8px 0 0; }
+
+/* Dashboard summary strip */
+.ds-root .ds-summary { margin: 0 0 16px; padding: 14px 16px; background: #fff; border: 1px solid #f0e4e6; border-radius: 14px; }
+.ds-root .ds-summary-head { font-size: 13px; color: #6b5a5e; margin-bottom: 10px; }
+.ds-root .ds-summary-head b { color: #4c0519; font-size: 15px; }
+.ds-root .ds-summary-tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.ds-root .ds-tile { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: #fdf6f7; text-decoration: none; color: inherit; }
+.ds-root .ds-tile b { font-size: 24px; line-height: 1.1; color: #4c0519; }
+.ds-root .ds-tile span { font-size: 12px; color: #6b5a5e; }
+.ds-root .ds-tile.hot { background: #4c0519; }
+.ds-root .ds-tile.hot b, .ds-root .ds-tile.hot span { color: #fff; }
+.ds-root .ds-summary-foot { margin-top: 10px; font-size: 12px; color: #6b5a5e; }
+@media (max-width: 700px) { .ds-root .ds-summary-tiles { grid-template-columns: repeat(2, 1fr); } }

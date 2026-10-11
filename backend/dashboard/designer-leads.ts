@@ -45,3 +45,18 @@ export async function getCallWithLead(callId: string) {
   const [call] = await q("select c.*, l.name from calls c left join leads l on l.id=c.lead_id where c.id=$1", [callId]);
   return call ?? null;
 }
+
+/** Top-line numbers for the dashboard header: all enquiries so far and this week, and where they ended up. */
+export async function dashboardSummary() {
+  const [row] = await q(`select
+      count(*)::int total,
+      count(*) filter (where last_call_at >= now() - interval '7 days')::int week,
+      count(*) filter (where decision='pending')::int to_review,
+      count(*) filter (where booking_time is not null and coalesce(booking_status,'') <> 'canceled')::int booked,
+      count(*) filter (where decision='approved')::int taken,
+      count(*) filter (where decision='rejected')::int passed,
+      count(*) filter (where routing='not_a_fit')::int not_fit,
+      count(*) filter (where routing in ('complaint','dropped','unclear') and decision is distinct from 'approved' and decision is distinct from 'rejected')::int other
+    from leads`);
+  return row as { total: number; week: number; to_review: number; booked: number; taken: number; passed: number; not_fit: number; other: number };
+}
